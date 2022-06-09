@@ -1,0 +1,6006 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+  <head>
+    <meta
+     name="generator"
+     content=
+    "HTML Tidy for Linux/x86 (vers 1st July 2002), see www.w3.org">
+
+    <title>Advanced Bash-Scripting Guide - Часть 7</title>
+    <meta
+     http-equiv="Content-Type"
+     content="text/html; charset=koi8-r">
+    <meta
+     name="GENERATOR"
+     content="Modular DocBook HTML Stylesheet Version 1.7">
+  </head>
+        <h1
+         class="TITLE"><a
+         name="AEN2"></a>Advanced Bash-Scripting Guide - Часть 7</h1>
+  <body
+   class="BOOK"
+   bgcolor="#FFFFFF"
+   text="#000000"
+   link="#0000FF"
+   vlink="#840084"
+   alink="#0000FF">
+      <div
+       class="TOC">
+       
+              <dt>28. <a
+               href="#ZEROS">/dev/zero и /dev/null</a></dt>
+
+              <dt>29. <a
+               href="#DEBUGGING">Отладка сценариев</a></dt>
+
+              <dt>30. <a
+               href="#OPTIONS">Необязательные параметры
+              (ключи)</a></dt>
+
+              <dt>31. <a
+               href="#GOTCHAS">Широко распространенные ошибки</a></dt>
+
+              <dt>32. <a
+               href="#SCRSTYLE">Стиль программирования</a></dt>
+
+              <dd>
+                <dl>
+                  <dt>32.1. <a
+                   href="#UNOFFICIALST">Неофициальные рекомендации по
+                  оформлению сценариев</a></dt>
+                </dl>
+              </dd>
+
+              <dt>33. <a
+               href="#MISCELLANY">Разное</a></dt>
+
+              <dd>
+                <dl>
+                  <dt>33.1. <a
+                   href="#INTANDNONINT">Интерактивный и неинтерактивный
+                  режим работы</a></dt>
+
+                  <dt>33.2. <a
+                   href="#WRAPPER">Сценарии-обертки</a></dt>
+
+                  <dt>33.3. <a
+                   href="#TESTSANDCOMPARISONS">Операции сравнения:
+                  Альтернативные решения</a></dt>
+
+                  <dt>33.4. <a
+                   href="#RECURSIONSCT">Рекурсия</a></dt>
+
+                  <dt>33.5. <a
+                   href="#COLORIZING"><span
+                   class="QUOTE">&quot;Цветные&quot;</span>
+                  сценарии</a></dt>
+
+                  <dt>33.6. <a
+                   href="#OPTIMIZATIONS">Оптимизация</a></dt>
+
+                  <dt>33.7. <a
+                   href="#ASSORTEDTIPS">Разные советы</a></dt>
+
+                  <dt>33.8. <a
+                   href="#SECURITYISSUES">Проблемы
+                  безопасности</a></dt>
+
+                  <dt>33.9. <a
+                   href="#PORTABILITYISSUES">Проблемы
+                  переносимости</a></dt>
+
+                  <dt>33.10. <a
+                   href="#WINSCRIPT">Сценарии командной оболочки под
+                  Windows</a></dt>
+                </dl>
+              </dd>
+
+              <dt>34. <a
+               href="#BASH2">Bash, версия 2</a></dt>
+            </dl>
+          </dd>
+
+          <dt>35. <a
+           href="#ENDNOTES">Замечания и дополнения</a></dt>
+
+          <dd>
+            <dl>
+              <dt>35.1. <a
+               href="#AUTHORSNOTE">От автора</a></dt>
+
+              <dt>35.2. <a
+               href="#ABOUTAUTHOR">Об авторе</a></dt>
+
+              <dt>35.3. <a
+               href="#TOOLSUSED">Инструменты, использовавшиеся при
+              создании книги</a></dt>
+
+              <dd>
+                <dl>
+                  <dt>35.3.1. <a
+                   href="#SOFTWARE-HARDWARE">Аппаратура</a></dt>
+
+                  <dt>35.3.2. <a
+                   href="#SOFTWARE-PRINTWARE">Программное
+                  обеспечение</a></dt>
+                </dl>
+              </dd>
+
+              <dt>35.4. <a
+               href="#CREDITS">Благодарности</a></dt>
+            </dl>
+          </dd>
+
+          <dt><a
+           href="#BIBLIO">Литература</a></dt>
+
+          <dt>A. <a
+           href="#CONTRIBUTED-SCRIPTS">Дополнительные примеры
+          сценариев</a></dt>
+
+		
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+PROCNAME=pppd        # демон ppp
+PROCFILENAME=status  # Что смотреть.
+NOTCONNECTED=65
+INTERVAL=2           # Период проверки -- раз в 2 секунды.
+
+pidno=$( ps ax | grep -v &quot;ps ax&quot; | grep -v grep | grep $PROCNAME | awk &#39;{ print $1 }&#39; )
+# Найти идентификатор процесса &#39;pppd&#39;, &#39;ppp daemon&#39;.
+# По пути убрать из листинга записи о процессах, порожденных сценарием.
+#
+#  Однако, как отмечает Oleg Philon,
+#+ Эта последовательность команд может быть заменена командой &quot;pidof&quot;.
+#  pidno=$( pidof $PROCNAME )
+#
+#  Мораль:
+#+ Когда последовательность команд становится слишком сложной,
+#+ это повод к тому, чтобы поискать более короткий вариант.
+
+
+if [ -z &quot;$pidno&quot; ]   # Если получилась пустая строка, значит процесс не запущен.
+then
+  echo &quot;Соединение не установлено.&quot;
+  exit $NOTCONNECTED
+else
+  echo &quot;Соединение установлено.&quot;; echo
+fi
+
+while [ true ]       # Бесконечный цикл.
+do
+
+  if [ ! -e &quot;/proc/$pidno/$PROCFILENAME&quot; ]
+  # Пока работает процесс, файл &quot;status&quot; существует.
+  then
+    echo &quot;Соединение разорвано.&quot;
+    exit $NOTCONNECTED
+  fi
+
+netstat -s | grep &quot;packets received&quot;  # Получить некоторые сведения о соединении.
+netstat -s | grep &quot;packets delivered&quot;
+
+
+  sleep $INTERVAL
+  echo; echo
+
+done
+
+exit 0
+
+# Как обычно, этот сценарий может быть остановлен комбинацией клавиш Control-C.
+
+#    Упражнение:
+#    ----------
+#    Добавьте возможность завершения работы сценария, по нажатии на клавишу &quot;q&quot;.
+#    Это сделает скрипт более жружественным к пользователю.
+</pre>
+            </div>
+
+            <div
+             class="WARNING">
+              <table
+               class="WARNING"
+               width="100%"
+               border="0">
+                <tr>
+                  <td
+                   width="25"
+                   align="center"
+                   valign="top"><img
+                   src="misc/abs-book/images/warning.gif"
+                   hspace="5"
+                   alt="Warning"></td>
+
+                  <td
+                   align="left"
+                   valign="top">
+                    <p>Будьте предельно осторожны при работе с файловой
+                    системой <tt
+                     class="FILENAME">/proc</tt>, так как попытка
+                    записи в некоторые файлы может повредить файловую
+                    систему или привести к краху системы.</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="ZEROS"></a>Глава 28. /dev/zero и /dev/null</h1>
+
+          <p><a
+           name="ZEROSREF"></a></p>
+
+          <div
+           class="VARIABLELIST">
+            <p><strong><a
+             name="ZERONULL1"></a></strong></p>
+
+            <dl>
+              <dt><tt
+               class="FILENAME">/dev/null</tt></dt>
+
+              <dd>
+                <p>Псевдоустройство <tt
+                 class="FILENAME">/dev/null</tt> -- это, своего рода,
+                <span
+                 class="QUOTE">&quot;черная дыра&quot;</span> в
+                системе. Это, пожалуй, самый близкий смысловой
+                эквивалент. Все, что записывается в этот файл,
+                &quot;исчезает&quot; навсегда. Попытки записи или
+                чтения из этого файла не дают, ровным счетом, никакого
+                результата. Тем не менее, псевдоустройство <tt
+                 class="FILENAME">/dev/null</tt> вполне может
+                пригодиться.</p>
+
+                <p>Подавление вывода на <tt
+                 class="FILENAME">stdout</tt>.</p>
+<pre
+ class="PROGRAMLISTING">
+cat $filename &gt;/dev/null
+# Содержимое файла $filename не появится на stdout.
+</pre>
+                <br>
+                <br>
+
+                <p>Подавление вывода на <tt
+                 class="FILENAME">stderr</tt> (from <a
+                 href="#EX57">Пример 12-2</a>).</p>
+<pre
+ class="PROGRAMLISTING">
+rm $badname 2&gt;/dev/null
+#           Сообщение об ошибке &quot;уйдет в никуда&quot;.
+</pre>
+                <br>
+                <br>
+
+                <p>Подавление вывода, как на <tt
+                 class="FILENAME">stdout</tt>, так и на <tt
+                 class="FILENAME">stderr</tt>.</p>
+<pre
+ class="PROGRAMLISTING">
+cat $filename 2&gt;/dev/null &gt;/dev/null
+# Если &quot;$filename&quot; не будет найден, то вы не увидите сообщения об ошибке.
+# Если &quot;$filename&quot; существует, то вы не увидите его содержимое.
+# Таким образом, вышеприведенная команда ничего не выводит на экран.
+#
+#  Такая методика бывает полезной, когда необходимо лишь проверить код завершения команды
+#+ и нежелательно выводить результат работы команды на экран.
+#
+# cat $filename &amp;&gt;/dev/null
+#     дает тот же результат, автор примечания Baris Cicek.
+</pre>
+                <br>
+                <br>
+
+                <p>Удаление содержимого файла, сохраняя, при этом, сам
+                файл, со всеми его правами доступа (очистка файла) (из
+                <a
+                 href="#EX1">Пример 2-1</a> и <a
+                 href="#EX2">Пример 2-2</a>):</p>
+<pre
+ class="PROGRAMLISTING">
+cat /dev/null &gt; /var/log/messages
+#  : &gt; /var/log/messages   дает тот же эффект, но не порождает дочерний процесс.
+
+cat /dev/null &gt; /var/log/wtmp
+</pre>
+                <br>
+                <br>
+
+                <p>Автоматическая очистка содержимого системного
+                журнала (logfile) (особенно хороша для борьбы с
+                надоедливыми рекламными идентификационными файлами
+                (<span
+                 class="QUOTE">&quot;cookies&quot;</span>)):</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="COOKIES"></a>
+
+                  <p><strong>Пример 28-1. Удаление
+                  cookie-файлов</strong></p>
+<pre
+ class="PROGRAMLISTING">
+if [ -f ~/.netscape/cookies ]  # Удалить, если имеются.
+then
+  rm -f ~/.netscape/cookies
+fi
+
+ln -s /dev/null ~/.netscape/cookies
+# Теперь, все cookie-файлы, вместо того, чтобы сохраняться на диске, будут &quot;вылетать в трубу&quot;.
+</pre>
+                </div>
+              </dd>
+
+              <dt><a
+               name="ZEROSREF1"></a><tt
+               class="FILENAME">/dev/zero</tt></dt>
+
+              <dd>
+                <p>Подобно псевдоустройству <tt
+                 class="FILENAME">/dev/null</tt>, <tt
+                 class="FILENAME">/dev/zero</tt> так же является
+                псевдоустройством, с той лишь разницей, что содержит
+                нули. Информация, выводимая в этот файл, так же
+                бесследно исчезает. Чтение нулей из этого файла может
+                вызвать некоторые затруднения, однако это можно
+                сделать, к примеру, с помощью команды <a
+                 href="#ODREF">od</a> или шестнадцатиричного редактора.
+                В основном, <tt
+                 class="FILENAME">/dev/zero</tt> используется для
+                создания заготовки файла с заданой длиной.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX73"></a>
+
+                  <p><strong>Пример 28-2. Создание файла подкачки
+                  (swapfile), с помощью <tt
+                   class="FILENAME">/dev/zero</tt></strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Создание файла подкачки.
+# Этот сценарий должен запускаться с правами root.
+
+ROOT_UID=0         # Для root -- $UID 0.
+E_WRONG_USER=65    # Не root?
+
+FILE=/swap
+BLOCKSIZE=1024
+MINBLOCKS=40
+SUCCESS=0
+
+if [ &quot;$UID&quot; -ne &quot;$ROOT_UID&quot; ]
+then
+  echo; echo &quot;Этот сценарий должен запускаться с правами root.&quot;; echo
+  exit $E_WRONG_USER
+fi
+
+
+blocks=${1:-$MINBLOCKS}          #  По-умолчанию -- 40 блоков,
+                                 #+ если размер не задан из командной строки.
+# Ниже приводится эквивалентный набор команд.
+# --------------------------------------------------
+# if [ -n &quot;$1&quot; ]
+# then
+#   blocks=$1
+# else
+#   blocks=$MINBLOCKS
+# fi
+# --------------------------------------------------
+
+
+if [ &quot;$blocks&quot; -lt $MINBLOCKS ]
+then
+  blocks=$MINBLOCKS              # Должно быть как минимум 40 блоков.
+fi
+
+
+echo &quot;Создание файла подкачки размером $blocks блоков (KB).&quot;
+dd if=/dev/zero of=$FILE bs=$BLOCKSIZE count=$blocks  # &quot;Забить&quot; нулями.
+
+mkswap $FILE $blocks             # Назначить как файл подкачки.
+swapon $FILE                     # Активировать.
+
+echo &quot;Файл подкачки создан и активирован.&quot;
+
+exit $SUCCESS
+</pre>
+                </div>
+
+                <p>Еще одна область применения <tt
+                 class="FILENAME">/dev/zero</tt> -- <span
+                 class="QUOTE">&quot;очистка&quot;</span> специального
+                файла заданного размера, например файлов, монтируемых
+                как <a
+                 href="#LOOPBACKREF">loopback-устройства</a> (см. <a
+                 href="#CREATEFS">Пример 13-6</a>) или для безопасного
+                удаления файла (см. <a
+                 href="#BLOTOUT">Пример 12-42</a>).</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="RAMDISK"></a>
+
+                  <p><strong>Пример 28-3. Создание электронного
+                  диска</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# ramdisk.sh
+
+#  &quot;электронный диск&quot; -- это область в ОЗУ компьютера
+#+ с которой система взаимодействует как с файловой системой.
+#  Основное преимущество -- очень высокая скорость чтения/записи.
+#  Недостатки -- энергозависимость, уменьшение объема ОЗУ, доступного системе,
+#                относительно небольшой размер.
+#
+#  Чем хорош электронный диск?
+#  При хранении наборов данных, таких как таблиц баз данных или словарей, на электронном диске
+#+ вы получаете высокую скорость работы с этими наборами, поскольку время доступа к ОЗУ
+#  неизмеримо меньше времени доступа к жесткому диску.
+
+
+E_NON_ROOT_USER=70             # Сценарий должен запускаться с правами root.
+ROOTUSER_NAME=root
+
+MOUNTPT=/mnt/ramdisk
+SIZE=2000                      # 2K блоков (измените, если это необходимо)
+BLOCKSIZE=1024                 # размер блока -- 1K (1024 байт)
+DEVICE=/dev/ram0               # Первое устройство ram
+
+username=`id -nu`
+if [ &quot;$username&quot; != &quot;$ROOTUSER_NAME&quot; ]
+then
+  echo &quot;Сценарий должен запускаться с правами root.&quot;
+  exit $E_NON_ROOT_USER
+fi
+
+if [ ! -d &quot;$MOUNTPT&quot; ]         #  Проверка наличия точки монтирования,
+then                           #+ благодаря этой проверке, при повторных запусках сценария
+  mkdir $MOUNTPT               #+ ошибки возникать не будет.
+fi
+
+dd if=/dev/zero of=$DEVICE count=$SIZE bs=$BLOCKSIZE  # Очистить электронный диск.
+mke2fs $DEVICE                 # Создать файловую систему ext2.
+mount $DEVICE $MOUNTPT         # Смонтировать.
+chmod 777 $MOUNTPT             # Сделать электронный диск доступным для обычных пользователей.
+                               # Но при этом, только root сможет его отмонтировать.
+
+echo &quot;Электронный диск \&quot;$MOUNTPT\&quot; готов к работе.&quot;
+# Теперь электронный диск доступен для любого пользователя в системе.
+
+#  Внимание! Электронный диск -- это энергозависимое устройство! Все данные, хранящиеся на нем,
+#+ будут утеряны при остановке или перезагрузке системы.
+#  Если эти данные представляют для вас интерес, то сохраняйте их копии в обычном каталоге.
+
+# После перезагрузки, чтобы вновь создать электронный диск, запустите этот сценарий.
+# Простое монтирование /mnt/ramdisk, без выполнения подготовительных действий, не будет работать.
+
+exit 0
+</pre>
+                </div>
+              </dd>
+            </dl>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="DEBUGGING"></a>Глава 29. Отладка сценариев</h1>
+
+          <p>Командная оболочка Bash не имеет своего отладчика, и не
+          имеет даже каких либо отладочных команд или конструкций. <a
+           name="AEN13102"
+           href="#FTN.AEN13102"><span
+           class="footnote">[59]</span></a> Синтаксические ошибки или
+          опечатки часто вызывают сообщения об ошибках, которые которые
+          практически никак не помогают при отладке.</p>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="EX74"></a>
+
+            <p><strong>Пример 29-1. Сценарий, содержащий
+            ошибку</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# ex74.sh
+
+# Этот сценарий содержит ошибку.
+
+a=37
+
+if [$a -gt 27 ]
+then
+  echo $a
+fi  
+
+exit 0
+</pre>
+          </div>
+
+          <p>В результате исполнения этого сценария вы получите такое
+          сообщение:</p>
+<pre
+ class="SCREEN">
+<tt
+ class="COMPUTEROUTPUT">./ex74.sh: [37: command not found</tt>
+</pre>
+          Что в этом сценарии может быть неправильно (подсказка: после
+          ключевого слова <strong
+           class="COMMAND">if</strong>)?<br>
+          <br>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="MISSINGKEYWORD"></a>
+
+            <p><strong>Пример 29-2. Пропущено <a
+             href="#KEYWORDREF">ключевое слово</a></strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# missing-keyword.sh:
+# Какое сообщение об ошибке будет выведено, при попытке запустить этот сценарий?
+
+for a in 1 2 3
+do
+  echo &quot;$a&quot;
+# done     # Необходимое ключевое слово &#39;done&#39; закомментировано.
+
+exit 0
+</pre>
+          </div>
+
+          <p>На экране появится сообщение:</p>
+<pre
+ class="SCREEN">
+<tt
+ class=
+"COMPUTEROUTPUT">missing-keyword.sh: line 11: syntax error: unexpected end of file</tt>
+       
+</pre>
+          Обратите внимание, сообщение об ошибке будет содержать номер
+          не той строки, в которой возникла ошибка, а той, в которой
+          Bash точно установил наличие ошибочной ситуации. <br>
+          <br>
+
+          <p>Сообщения об ошибках могут вообще не содержать номера
+          строки, при исполнении которой эта ошибка появилась.</p>
+
+          <p>А что делать, если сценарий работает, но не так как
+          ожидалось? Вот пример весьма распространенной логической
+          ошибки.</p>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="EX75"></a>
+
+            <p><strong>Пример 29-3. test24</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+#  Ожидается, что этот сценарий будет удалять в текущем каталоге
+#+ все файлы, имена которых содержат пробелы.
+#  Но он не работает.  Почему?
+
+
+badname=`ls | grep &#39; &#39;`
+
+# echo &quot;$badname&quot;
+
+rm &quot;$badname&quot;
+
+exit 0
+</pre>
+          </div>
+
+          <p>Попробуйте найти ошибку, раскомментарив строку <tt
+           class="USERINPUT"><strong>echo
+          &quot;$badname&quot;</strong></tt>. Инструкция echo очень
+          полезна при отладке сценариев, она позволяет узнать --
+          действительно ли вы получаете то, что ожидали получить.</p>
+
+          <p>В данном конкретном случае, команда <tt
+           class="USERINPUT"><strong>rm
+          &quot;$badname&quot;</strong></tt> не дает желаемого
+          результата потому, что переменная <tt
+           class="VARNAME">$badname</tt> взята в кавычки. В результате,
+          <strong
+           class="COMMAND">rm</strong> получает единственный аргумент
+          (т.е. команда будет считать, что получила имя одного файла).
+          Частично эта проблема может быть решена за счет удаления
+          кавычек вокруг <tt
+           class="VARNAME">$badname</tt> и установки переменной <tt
+           class="VARNAME">$IFS</tt> так, чтобы она содержала только
+          символ перевода строки, <tt
+           class="USERINPUT"><strong>IFS=$&#39;\n&#39;</strong></tt>.
+          Однако, существует более простой способ выполнить эту
+          задачу.</p>
+<pre
+ class="PROGRAMLISTING">
+# Правильный способ удаления файлов, в чьих именах содержатся пробелы.
+rm *\ *
+rm *&quot; &quot;*
+rm *&#39; &#39;*
+# Спасибо S.C.
+</pre>
+          <br>
+          <br>
+
+          <p>В общих чертах, ошибочными можно считать такие сценарии,
+          которые</p>
+
+          <ol
+           type="1">
+            <li>
+              <p>&quot;сыплют&quot; сообщениями о <span
+               class="QUOTE">&quot;<span
+               class="ERRORNAME">синтаксических
+              ошибках</span>&quot;</span> или</p>
+            </li>
+
+            <li>
+              <p>запускаются, но работают не так как ожидалось (<span
+               class="ERRORNAME">логические ошибки</span>).</p>
+            </li>
+
+            <li>
+              <p>запускаются, делают то, что требуется, но имеют
+              побочные эффекты (<span
+               class="ERRORNAME">логическая бомба</span>).</p>
+            </li>
+          </ol>
+          <br>
+          <br>
+
+          <p>Инструменты, которые могут помочь при отладке неработающих
+          сценариев</p>
+
+          <ol
+           type="1">
+            <li>
+              <p>команда echo, в критических точках сценария, поможет
+              отследить состояние переменных и отобразить ход
+              исполнения.</p>
+            </li>
+
+            <li>
+              <p>команда-фильтр <strong
+               class="COMMAND">tee</strong>, которая поможет проверить
+              процессы и потоки данных в критических местах.</p>
+            </li>
+
+            <li>
+              <p>ключи <tt
+               class="OPTION">-n -v -x</tt></p>
+
+              <p><tt
+               class="USERINPUT"><strong>sh -n scriptname</strong></tt>
+              -- проверит наличие синтаксических ошибок, не запуская
+              сам сценарий. Того же эффекта можно добиться, вставив в
+              сценарий команду <tt
+               class="USERINPUT"><strong>set -n</strong></tt> или <tt
+               class="USERINPUT"><strong>set -o noexec</strong></tt>.
+              Обратите внимание, некоторые из синтаксических ошибок не
+              могут быть выявлены таким способом.</p>
+
+              <p><tt
+               class="USERINPUT"><strong>sh -v scriptname</strong></tt>
+              -- выводит каждую команду прежде, чем она будет
+              выполнена. Того же эффекта можно добиться, вставив в
+              сценарий команду <tt
+               class="USERINPUT"><strong>set -v</strong></tt> или <tt
+               class="USERINPUT"><strong>set -o
+              verbose</strong></tt>.</p>
+
+              <p>Ключи <tt
+               class="OPTION">-n</tt> и <tt
+               class="OPTION">-v</tt> могут употребляться совместно:
+              <tt
+               class="USERINPUT"><strong>sh -nv
+              scriptname</strong></tt>.</p>
+
+              <p><tt
+               class="USERINPUT"><strong>sh -x scriptname</strong></tt>
+              -- выводит, в краткой форме, результат исполнения каждой
+              команды. Того же эффекта можно добиться, вставив в
+              сценарий команду <tt
+               class="USERINPUT"><strong>set -x</strong></tt> или <tt
+               class="USERINPUT"><strong>set -o
+              xtrace</strong></tt>.</p>
+
+              <p>Вставив в сценарий <tt
+               class="USERINPUT"><strong>set -u</strong></tt> или <tt
+               class="USERINPUT"><strong>set -o nounset</strong></tt>,
+              вы будете получать сообщение об ошибке <span
+               class="ERRORNAME">unbound variable</span> всякий раз,
+              когда будет производиться попытка обращения к
+              необъявленной переменной.</p>
+            </li>
+
+            <li>
+              <p>Функция <span
+               class="QUOTE">&quot;assert&quot;</span>, предназначенная
+              для проверки переменных или условий, в критических точках
+              сценария. (Эта идея заимствована из языка
+              программирования C.)</p>
+
+              <div
+               class="EXAMPLE">
+                <a
+                 name="ASSERT"></a>
+
+                <p><strong>Пример 29-4. Проверка условия с помощью
+                функции <span
+                 class="QUOTE">&quot;assert&quot;</span></strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# assert.sh
+
+assert ()                 #  Если условие ложно,
+{                         #+ выход из сценария с сообщением об ошибке.
+  E_PARAM_ERR=98
+  E_ASSERT_FAILED=99
+
+
+  if [ -z &quot;$2&quot; ]          # Недостаточное количество входных параметров.
+  then
+    return $E_PARAM_ERR
+  fi
+
+  lineno=$2
+
+  if [ ! $1 ]
+  then
+    echo &quot;Утверждение ложно:  \&quot;$1\&quot;&quot;
+    echo &quot;Файл: \&quot;$0\&quot;, строка: $lineno&quot;
+    exit $E_ASSERT_FAILED
+  # else
+  #   return
+  #   и продолжить исполнение сценария.
+  fi
+}
+
+
+a=5
+b=4
+condition=&quot;$a -lt $b&quot;     # Сообщение об ощибке и завершение сценария.
+                          #  Попробуйте поменять условие &quot;condition&quot;
+                          #+ на что нибудь другое и
+                          #+ посмотреть -- что получится.
+
+assert &quot;$condition&quot; $LINENO
+# Сценарий продолжит работу только в том случае, если утверждение истинно.
+
+
+# Прочие команды.
+# ...
+echo &quot;Эта строка появится на экране только если утверждение истинно.&quot;
+# ...
+# Прочие команды.
+# ...
+
+exit 0
+</pre>
+              </div>
+            </li>
+
+            <li>
+              <p>Ловушка на выхто в этом сценарии может быть
+              неправильно (подсказка: после ключевого словоде.</p>
+
+              <p>Команда <strong
+               class="COMMAND">exit</strong>, в сценарии, порождает
+              сигнал <span
+               class="RETURNVALUE">0</span>, по которому процесс
+              завершает работу, т.е. -- сам сценарий. <a
+               name="AEN13188"
+               href="#FTN.AEN13188"><span
+               class="footnote">[60]</span></a> Часто бывает полезным
+              по выходу из сценария выдать <span
+               class="QUOTE">&quot;распечатку&quot;</span>
+              переменных.</p>
+            </li>
+          </ol>
+          <br>
+          <br>
+
+          <div
+           class="VARIABLELIST">
+            <p><strong><a
+             name="TRAPREF1"></a>Установка ловушек на
+            сигналы</strong></p>
+
+            <dl>
+              <dt><strong
+               class="COMMAND">trap</strong></dt>
+
+              <dd>
+                <p>Определяет действие при получении сигнала; так же
+                полезна при отладке.</p>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p><a
+                         name="SIGNALD"></a>Сигнал (<span
+                         class="emphasis"><em
+                         class="EMPHASIS">signal</em></span>) -- это
+                        просто сообщение, передается процессу либо
+                        ядром, либо другим процессом, чтобы побудить
+                        процесс выполнить какие либо действия (обычно
+                        -- завершить работу). Например, нажатие на
+                        <strong
+                         class="KEYCAP">Control</strong>-<strong
+                         class="KEYCAP">C</strong>, вызывает передачу
+                        сигнала SIGINT, исполняющейся программе.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+<pre
+ class="PROGRAMLISTING">
+trap &#39;&#39; 2
+# Игнорировать прерывание 2 (Control-C), действие по сигналу не указано.
+
+trap &#39;echo &quot;Control-C disabled.&quot;&#39; 2
+# Сообщение при нажатии на Control-C.
+</pre>
+                <br>
+                <br>
+              </dd>
+            </dl>
+          </div>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="EX76"></a>
+
+            <p><strong>Пример 29-5. Ловушка на выходе</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+trap &#39;echo Список переменных --- a = $a  b = $b&#39; EXIT
+# EXIT -- это название сигнала, генерируемого при выходе из сценария.
+
+a=39
+
+b=36
+
+exit 0
+# Примечательно, что если закомментировать команду &#39;exit&#39;,
+# то это никак не скажется на работе сценария,
+# поскольку &quot;выход&quot; из сценария происходит в любом случае.
+</pre>
+          </div>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="ONLINE"></a>
+
+            <p><strong>Пример 29-6. Удаление временного файла при
+            нажатии на Control-C</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# logon.sh: Сценарий, написаный &quot;на скорую руку&quot;, контролирует вход в режим on-line.
+
+
+TRUE=1
+LOGFILE=/var/log/messages
+# Обратите внимание: $LOGFILE должен быть доступен на чтение (chmod 644 /var/log/messages).
+TEMPFILE=temp.$$
+# &quot;Уникальное&quot; имя для временного файла, где расширение в имени -- это pid процесса-сценария.
+KEYWORD=address
+# При входе, в файл /var/log/messages,
+# добавляется  строка &quot;remote IP address xxx.xxx.xxx.xxx&quot;
+ONLINE=22
+USER_INTERRUPT=13
+CHECK_LINES=100
+# Количество проверяемых строк.
+
+trap &#39;rm -f $TEMPFILE; exit $USER_INTERRUPT&#39; TERM INT
+# Удалить временный файл, когда сценарий завершает работу по control-c.
+
+echo
+
+while [ $TRUE ]  #Бесконечный цикл.
+do
+  tail -$CHECK_LINES $LOGFILE&gt; $TEMPFILE
+  # Последние 100 строк из системного журнала переписать во временный файл.
+  # Совершенно необходимо, т.к. новейшие версии ядер генерируют много сообщений при входе.
+  search=`grep $KEYWORD $TEMPFILE`
+  # Проверить наличие фразы &quot;address&quot;,
+  # свидетельствующей об успешном входе.
+
+  if [ ! -z &quot;$search&quot; ] # Кавычки необходимы, т.к. переменная может содержать пробелы.
+  then
+     echo &quot;On-line&quot;
+     rm -f $TEMPFILE    # Удалить временный файл.
+     exit $ONLINE
+  else
+     echo -n &quot;.&quot;        # ключ -n подавляет вывод символа перевода строки,
+                        # так вы получите непрерывную строку точек.
+  fi
+
+  sleep 1
+done
+
+
+# Обратите внимание: если изменить содержимое переменной KEYWORD
+# на &quot;Exit&quot;, то сценарий может использоваться для контроля
+# неожиданного выхода (logoff).
+
+exit 0
+
+# Nick Drage предложил альтернативный метод:
+
+while true
+  do ifconfig ppp0 | grep UP 1&gt; /dev/null &amp;&amp; echo &quot;соединение установлено&quot; &amp;&amp; exit 0
+  echo -n &quot;.&quot;   # Печать последовательности точек (.....), пока соединение не будет установлено.
+  sleep 2
+done
+
+# Проблема: Нажатия Control-C может оказаться недостаточным, чтобы завершить этот процесс.
+#          (Точки продолжают выводиться на экран.)
+# Упражнение: Исправьте этот недостаток.
+
+
+
+# Stephane Chazelas предложил еще одну альтернативу:
+
+CHECK_INTERVAL=1
+
+while ! tail -1 &quot;$LOGFILE&quot; | grep -q &quot;$KEYWORD&quot;
+do echo -n .
+   sleep $CHECK_INTERVAL
+done
+echo &quot;On-line&quot;
+
+# Упражнение: Найдите сильные и слабые стороны
+#           каждого из этих подходов.
+</pre>
+          </div>
+
+          <div
+           class="NOTE">
+            <table
+             class="NOTE"
+             width="100%"
+             border="0">
+              <tr>
+                <td
+                 width="25"
+                 align="center"
+                 valign="top"><img
+                 src="misc/abs-book/images/note.gif"
+                 hspace="5"
+                 alt="Note"></td>
+
+                <td
+                 align="left"
+                 valign="top">
+                  <p>Аргумент <tt
+                   class="OPTION">DEBUG</tt>, команды <strong
+                   class="COMMAND">trap</strong>, заставляет сценарий
+                  выполнять указанное действие после выполнения каждой
+                  команды. Это можно использовать для трассировки
+                  переменных.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="VARTRACE"></a>
+
+                    <p><strong>Пример 29-7. Трассировка
+                    переменной</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+trap &#39;echo &quot;VARIABLE-TRACE&gt; $LINENO: \$variable = \&quot;$variable\&quot;&quot;&#39; DEBUG
+# Выводить значение переменной после исполнения каждой команды.
+
+variable=29
+
+echo &quot;Переменная \&quot;\$variable\&quot; инициализирована числом $variable.&quot;
+
+let &quot;variable *= 3&quot;
+echo &quot;Значение переменной \&quot;\$variable\&quot; увеличено в 3 раза.&quot;
+
+# Конструкция &quot;trap &#39;commands&#39; DEBUG&quot; может оказаться очень полезной
+# при отладке больших и сложных скриптов,
+# когда размещение множества инструкций &quot;echo $variable&quot;
+# может потребовать достаточно большого времени.
+
+# Спасибо Stephane Chazelas.
+
+exit 0
+</pre>
+                  </div>
+                  <br>
+                  <br>
+                </td>
+              </tr>
+            </table>
+          </div>
+
+          <div
+           class="NOTE">
+            <table
+             class="NOTE"
+             width="100%"
+             border="0">
+              <tr>
+                <td
+                 width="25"
+                 align="center"
+                 valign="top"><img
+                 src="misc/abs-book/images/note.gif"
+                 hspace="5"
+                 alt="Note"></td>
+
+                <td
+                 align="left"
+                 valign="top">
+                  <p>Конструкция <tt
+                   class="USERINPUT"><strong>trap &#39;&#39;
+                  SIGNAL</strong></tt> (две одиночных кавычки) --
+                  запрещает SIGNAL для оставшейся части сценария.
+                  Конструкция <tt
+                   class="USERINPUT"><strong>trap SIGNAL</strong></tt>
+                  -- восстанавливает действие сигнала SIGNAL. Эти
+                  конструкции могут использоваться для защиты
+                  критических участков сценария от нежелательного
+                  прерывания.</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+<pre
+ class="PROGRAMLISTING">
+       trap &#39;&#39; 2  # Сигнал 2 (Control-C) -- запрещен.
+        command
+        command
+        command
+        trap 2     # Разрешение реакции на Control-C
+       
+</pre>
+          <br>
+          <br>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="OPTIONS"></a>Глава 30. Необязательные параметры
+          (ключи)</h1>
+
+          <p><a
+           name="OPTIONSREF"></a></p>
+
+          <p>Необязательные параметры -- это дополнительные ключи
+          (опции), которые оказывают влияние на поведение сценария
+          и/или командной оболочки.</p>
+
+          <p>Команда <a
+           href="#SETREF">set</a> позволяет задавать дополнительные
+          опции прямо внутри сценария. В том месте сценария, где
+          необходимо, чтобы та или иная опция вступила в силу, вставьте
+          такую конструкцию <strong
+           class="COMMAND">set -o option-name</strong>, или в более
+          короткой форме -- <strong
+           class="COMMAND">set -option-abbrev</strong>. Эти две формы
+          записи совершенно идентичны по своему действию.</p>
+<pre
+ class="PROGRAMLISTING">
+      #!/bin/bash
+
+      set -o verbose
+      # Вывод команд перед их исполнением.
+     
+</pre>
+          <br>
+          <br>
+<pre
+ class="PROGRAMLISTING">
+      #!/bin/bash
+
+      set -v
+      # Имеет тот же эффект, что и выше.
+     
+</pre>
+          <br>
+          <br>
+
+          <div
+           class="NOTE">
+            <table
+             class="NOTE"
+             width="100%"
+             border="0">
+              <tr>
+                <td
+                 width="25"
+                 align="center"
+                 valign="top"><img
+                 src="misc/abs-book/images/note.gif"
+                 hspace="5"
+                 alt="Note"></td>
+
+                <td
+                 align="left"
+                 valign="top">
+                  <p>Для того, чтобы отключить действие той или иной
+                  опции, следует вставить конструкцию <strong
+                   class="COMMAND">set +o option-name</strong>, или
+                  <strong
+                   class="COMMAND">set +option-abbrev</strong>.</p>
+                </td>
+              </tr>
+            </table>
+          </div>
+<pre
+ class="PROGRAMLISTING">
+      #!/bin/bash
+
+      set -o verbose
+      # Вывод команд перед их исполнением.
+      command
+      ...
+      command
+
+      set +o verbose
+      # Запретить вывод команд перед их исполнением.
+      command
+      # команда не выводится.
+
+
+      set -v
+      # Вывод команд перед их исполнением.
+      command
+      ...
+      command
+
+      set +v
+      # Запретить вывод команд перед их исполнением.
+      command
+
+      exit 0
+     
+</pre>
+          <br>
+          <br>
+
+          <p>Как вариант установки опций, можно предложить указывать их
+          в заголовке сценария (в строке sha-bang) -- <tt
+           class="REPLACEABLE"><em>#!</em></tt>.</p>
+<pre
+ class="PROGRAMLISTING">
+      #!/bin/bash -x
+      #
+      # Далее следует текст сценария.
+     
+</pre>
+          <br>
+          <br>
+
+          <p><a
+           name="INVOCATIONOPTIONSREF"></a></p>
+
+          <p>Так же можно указывать дополнительные ключи в командной
+          строке, при запуске сценария. Некоторые из опций работают
+          только если они заданы из командной строки, например <tt
+           class="REPLACEABLE"><em>-i</em></tt> -- ключ интерактивного
+          режима работы скрипта.</p>
+
+          <p><tt
+           class="USERINPUT"><strong>bash -v
+          script-name</strong></tt></p>
+
+          <p><tt
+           class="USERINPUT"><strong>bash -o verbose
+          script-name</strong></tt></p>
+
+          <p>Ниже приводится список некоторых полезных опций, которые
+          могут быть указаны как в полной форме так и в
+          сокращенной.</p>
+
+          <div
+           class="TABLE">
+            <a
+             name="AEN13260"></a>
+
+            <p><strong>Таблица 30-1. Ключи Bash</strong></p>
+
+            <table
+             border="1"
+             class="CALSTABLE">
+              <thead>
+                <tr>
+                  <th
+                   align="left"
+                   valign="top">Краткое имя</th>
+
+                  <th
+                   align="left"
+                   valign="top">Полное имя</th>
+
+                  <th
+                   align="left"
+                   valign="top">Описание</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><a
+                   name="NOCLOBBERREF"></a><tt
+                   class="OPTION">-C</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">noclobber</td>
+
+                  <td
+                   align="left"
+                   valign="top">Предотвращает перезапись файла в
+                  операциях перенаправления вывода (не распространяется
+                  на конвейеры (каналы) -- <span
+                   class="TOKEN">&gt;|</span>)</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-D</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">(нет)</td>
+
+                  <td
+                   align="left"
+                   valign="top">Выводит список строк в двойных
+                  кавычках, которым предшествует символ <span
+                   class="TOKEN">$</span>, сам сценарий не
+                  исполняется</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-a</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">allexport</td>
+
+                  <td
+                   align="left"
+                   valign="top">Экспорт всех, определенных в сценарии,
+                  переменных</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-b</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">notify</td>
+
+                  <td
+                   align="left"
+                   valign="top">Выводит уведомление по завершении
+                  фоновой задачи (job) (довольно редко используется в
+                  сценариях)</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-c ...</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">(нет)</td>
+
+                  <td
+                   align="left"
+                   valign="top">Читает команды из <strong
+                   class="COMMAND">...</strong></td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-f</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">noglob</td>
+
+                  <td
+                   align="left"
+                   valign="top">Подстановка имен файлов (globbing)
+                  запрещена</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-i</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">interactive</td>
+
+                  <td
+                   align="left"
+                   valign="top">Сценарий запускается в <span
+                   class="emphasis"><em
+                   class="EMPHASIS">интерактивном</em></span>
+                  режиме</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-p</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">privileged</td>
+
+                  <td
+                   align="left"
+                   valign="top">Сценарий запускается как <span
+                   class="QUOTE">&quot;suid&quot;</span>
+                  (осторожно!)</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-r</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">restricted</td>
+
+                  <td
+                   align="left"
+                   valign="top">Сценарий запускается в <span
+                   class="emphasis"><em
+                   class="EMPHASIS">ограниченном</em></span> режиме
+                  (см. <a
+                   href="#RESTRICTED-SH">Глава 20</a>).</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-u</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">nounset</td>
+
+                  <td
+                   align="left"
+                   valign="top">При попытке обращения к неопределенным
+                  переменным, выдает сообщение об ошибке и прерывает
+                  работу сценария</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-v</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">verbose</td>
+
+                  <td
+                   align="left"
+                   valign="top">Выводит на <tt
+                   class="FILENAME">stdout</tt> каждую команду прежде,
+                  чем она будет исполнена</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-x</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">xtrace</td>
+
+                  <td
+                   align="left"
+                   valign="top">Подобна <tt
+                   class="OPTION">-v</tt>, но выполняет подстановку
+                  команд</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-e</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">errexit</td>
+
+                  <td
+                   align="left"
+                   valign="top">Прерывает работу сценария при появлении
+                  первой же ошибки (когда команда возвращает ненулевой
+                  код завершения)</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-n</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">noexec</td>
+
+                  <td
+                   align="left"
+                   valign="top">Читает команды из сценария, но не
+                  исполняет их (проверка синтаксиса)</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-s</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">stdin</td>
+
+                  <td
+                   align="left"
+                   valign="top">Читает команды с устройства <tt
+                   class="FILENAME">stdin</tt></td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-t</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">(нет)</td>
+
+                  <td
+                   align="left"
+                   valign="top">Выход после исполнения первой
+                  команды</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">-</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">(нет)</td>
+
+                  <td
+                   align="left"
+                   valign="top">Конец списка ключей (опций),
+                  последующие аргументы будут восприниматься как <a
+                   href="#POSPARAMREF">позиционные параметры</a>.</td>
+                </tr>
+
+                <tr>
+                  <td
+                   align="left"
+                   valign="top"><tt
+                   class="OPTION">--</tt></td>
+
+                  <td
+                   align="left"
+                   valign="top">(нет)</td>
+
+                  <td
+                   align="left"
+                   valign="top">Эквивалент предыдущей опции (-).</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="GOTCHAS"></a>Глава 31. Широко распространенные
+          ошибки</h1>
+
+          <table
+           border="0"
+           width="100%"
+           cellspacing="0"
+           cellpadding="0"
+           class="EPIGRAPH">
+            <tr>
+              <td
+               width="45%"> </td>
+
+              <td
+               width="45%"
+               align="left"
+               valign="top">
+                <p><em>Turandot: Gli enigmi sono tre, la morte
+                una!</em></p>
+
+                <p><em>Caleph: No, no! Gli enigmi sono tre, una la
+                vita!</em></p>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+               width="45%"> </td>
+
+              <td
+               width="45%"
+               align="right"
+               valign="top"><em><span
+               class="ATTRIBUTION">Puccini</span></em></td>
+            </tr>
+          </table>
+
+          <p>Использование зарезервированных слов и служебных символов
+          в качестве имен переменных.</p>
+<pre
+ class="PROGRAMLISTING">
+case=value0       # Может вызвать проблемы.
+23skidoo=value1   # Тоже самое.
+# Имена переменных, начинающиеся с цифр, зарезервированы командной оболочкой.
+# Если имя переменной начинается с символа подчеркивания: _23skidoo=value1, то это не считается ошибкой.
+
+# Однако... если имя переменной состоит из единственного символа подчеркивания, то это ошибка.
+_=25
+echo $_           # $_  -- это внутренняя переменная.
+
+xyz((!*=value2    # Вызывает серьезные проблемы.
+</pre>
+          <br>
+          <br>
+
+          <p>Использование дефиса, и других зарезервированных символов,
+          в именах переменных.</p>
+<pre
+ class="PROGRAMLISTING">
+var-1=23
+# Вместо такой записи используйте &#39;var_1&#39;.
+</pre>
+          <br>
+          <br>
+
+          <p>Использование одинаковых имен для переменных и функций.
+          Это делает сценарий трудным для понимания.</p>
+<pre
+ class="PROGRAMLISTING">
+do_something ()
+{
+  echo &quot;Эта функция должна что-нибудь сделать с \&quot;$1\&quot;.&quot;
+}
+
+do_something=do_something
+
+do_something do_something
+
+# Все это будет работать правильно, но слишком уж запутанно.
+</pre>
+          <br>
+          <br>
+
+          <p><a
+           name="WSBAD"></a>Использование лишних <a
+           href="#WHITESPACEREF">пробелов</a>. В отличие от других
+          языков программирования, Bash весьма привередлив по отношению
+          к пробелам.</p>
+<pre
+ class="PROGRAMLISTING">
+var1 = 23   # Правильный вариант: &#39;var1=23&#39;.
+# В вышеприведенной строке Bash будет трактовать &quot;var1&quot; как имя команды
+# с аргументами &quot;=&quot; и &quot;23&quot;.
+
+let c = $a - $b   # Правильный вариант: &#39;let c=$a-$b&#39; или &#39;let &quot;c = $a - $b&quot;&#39;
+
+if [ $a -le 5]    # Правильный вариант: if [ $a -le 5 ]
+# if [ &quot;$a&quot; -le 5 ]   еще лучше.
+# [[ $a -le 5 ]] тоже верно.
+</pre>
+          <br>
+          <br>
+
+          <p>Ошибочным является предположение о том, что
+          неинициализированные переменные содержат <span
+           class="QUOTE">&quot;ноль&quot;</span>. Неинициализированные
+          переменные содержат <span
+           class="QUOTE">&quot;пустое&quot;</span> (null) значение, а
+          <span
+           class="emphasis"><em
+           class="EMPHASIS">не</em></span> ноль.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo &quot;uninitialized_var = $uninitialized_var&quot;
+# uninitialized_var =
+</pre>
+          <br>
+          <br>
+
+          <p>Часто программисты путают операторы сравнения <span
+           class="emphasis"><em
+           class="EMPHASIS">=</em></span> и <span
+           class="emphasis"><em
+           class="EMPHASIS">-eq</em></span>. Запомните, оператор <span
+           class="emphasis"><em
+           class="EMPHASIS">=</em></span> используется для сравнения
+          строковых переменных, а <span
+           class="emphasis"><em
+           class="EMPHASIS">-eq</em></span> -- для сравнения целых
+          чисел.</p>
+<pre
+ class="PROGRAMLISTING">
+if [ &quot;$a&quot; = 273 ]      # Как вы полагаете? $a -- это целое число или строка?
+if [ &quot;$a&quot; -eq 273 ]    # Если $a -- целое число.
+
+# Иногда, такого рода ошибка никак себя не проявляет.
+# Однако...
+
+
+a=273.0   # Не целое число.
+
+if [ &quot;$a&quot; = 273 ]
+then
+  echo &quot;Равны.&quot;
+else
+  echo &quot;Не равны.&quot;
+fi    # Не равны.
+
+# тоже самое и для  a=&quot; 273&quot;  и  a=&quot;0273&quot;.
+
+
+# Подобные проблемы возникают при использовании &quot;-eq&quot; со строковыми значениями.
+
+if [ &quot;$a&quot; -eq 273.0 ]
+then
+  echo &quot;a = $a&#39;
+fi  # Исполнение сценария прерывается по ошибке.
+# test.sh: [: 273.0: integer expression expected
+</pre>
+          <br>
+          <br>
+
+          <p>Ошибки при сравнении <a
+           href="#ICOMPARISON1">целых чисел</a> и <a
+           href="#SCOMPARISON1">строковых значений</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# bad-op.sh
+
+number=1
+
+while [ &quot;$number&quot; &lt; 5 ]    # Неверно! должно быть   while [ &quot;number&quot; -lt 5 ]
+do
+  echo -n &quot;$number &quot;
+  let &quot;number += 1&quot;
+done
+
+# Этот сценарий генерирует сообщение об ошибке:
+# bad-op.sh: 5: No such file or directory
+</pre>
+          <br>
+          <br>
+
+          <p>Иногда, в операциях проверки, с использованием квадратных
+          скобок ([ ]), переменные необходимо брать в двойные кавычки.
+          См. <a
+           href="#STRTEST">Пример 7-6</a>, <a
+           href="#REDIR2">Пример 16-4</a> и <a
+           href="#ARGLIST">Пример 9-6</a>.</p>
+
+          <p>Иногда сценарий не в состоянии выполнить команду из-за
+          нехватки прав доступа. Если пользователь не сможет запустить
+          команду из командной строки, то эта команда не сможет быть
+          запущена и из сценария. Попробуйте изменить атрибуты команды,
+          возможно вам придется установить бит suid.</p>
+
+          <p>Использование символа <strong
+           class="COMMAND">-</strong> в качестве оператора
+          перенаправления (каковым он не является) может приводить к
+          неожиданным результатам.</p>
+<pre
+ class="PROGRAMLISTING">
+command1 2&gt; - | command2  # Попытка передать сообщения об ошибках команде command1 через конвейер...
+#    ...не будет работать.
+
+command1 2&gt;&amp; - | command2  # Так же бессмысленно.
+
+Спасибо S.C.
+</pre>
+          <br>
+          <br>
+
+          <p>Использование функциональных особенностей Bash <a
+           href="#BASH2REF">версии 2</a> или выше, может привести к
+          аварийному завершению сценария, работающему под управлением
+          Bash версии 1.XX.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+minimum_version=2
+# Поскольку Chet Ramey постоянно развивает Bash,
+# вам может потребоваться указать другую минимально допустимую версию $minimum_version=2.XX.
+E_BAD_VERSION=80
+
+if [ &quot;$BASH_VERSION&quot; \&lt; &quot;$minimum_version&quot; ]
+then
+  echo &quot;Этот сценарий должен исполняться под управлением Bash, версии $minimum или выше.&quot;
+  echo &quot;Настоятельно рекомендуется обновиться.&quot;
+  exit $E_BAD_VERSION
+fi
+
+...
+</pre>
+          <br>
+          <br>
+
+          <p>Использование специфических особенностей Bash может
+          приводить к аварийному завершению сценария в Bourne shell
+          (<tt
+           class="USERINPUT"><strong>#!/bin/sh</strong></tt>). Как
+          правило, в Linux дистрибутивах, <strong
+           class="COMMAND">sh</strong> является псевдонимом <strong
+           class="COMMAND">bash</strong>, но это не всегда верно для
+          UNIX-систем вообще.</p>
+
+          <p>Сценарий, в котором строки отделяются друг от друга в
+          стиле MS-DOS (<tt
+           class="REPLACEABLE"><em>\r\n</em></tt>), будет завершаться
+          аварийно, поскольку комбинация <tt
+           class="USERINPUT"><strong>#!/bin/bash\r\n</strong></tt>
+          считается недопустимой. Исправить эту ошибку можно простым
+          удалением символа \r из сценария.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo &quot;Начало&quot;
+
+unix2dos $0    # Сценарий переводит символы перевода строки в формат DOS.
+chmod 755 $0   # Восстановление прав на запуск.
+               # Команда &#39;unix2dos&#39; удалит право на запуск из атрибутов файла.
+
+./$0           # Попытка запустить себя самого.
+               # Но это не сработает из-за того, что теперь строки отделяются
+               # друг от друга в стиле DOS.
+
+echo &quot;Конец&quot;
+
+exit 0
+</pre>
+          <br>
+          <br>
+
+          <p>Сценарий, начинающийся с <tt
+           class="USERINPUT"><strong>#!/bin/sh</strong></tt>, не может
+          работать в режиме полной совместимости с Bash. Некоторые из
+          специфических функций, присущих Bash, могут оказаться
+          запрещенными к использованию. Сценарий, который требует
+          полного доступа ко всем расширениям, имеющимся в Bash, должен
+          начинаться строкой <tt
+           class="USERINPUT"><strong>#!/bin/bash</strong></tt>.</p>
+
+          <p>Сценарий не может <strong
+           class="COMMAND">экспортировать</strong> переменные <a
+           href="#FORKREF">родительскому процессу</a> - оболочке. Здесь
+          как в природе, потомок может унаследовать черты родителя, но
+          не наооборот.</p>
+<pre
+ class="PROGRAMLISTING">
+WHATEVER=/home/bozo
+export WHATEVER
+exit 0
+</pre>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <strong
+ class="COMMAND">echo $WHATEVER</strong>
+
+<tt
+ class="PROMPT">bash$</tt>
+</pre>
+          Будьте уверены -- при выходе в командную строку переменная
+          $WHATEVER останется неинициализированной. <br>
+          <br>
+
+          <p>Использование в подоболочке переменных с теми же именами,
+          что и в родительской оболочке может не давать ожидаемого
+          результата.</p>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="SUBPIT"></a>
+
+            <p><strong>Пример 31-1. Западня в подоболочке</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Западня в подоболочке.
+
+outer_variable=внешняя_переменная
+echo
+echo &quot;outer_variable = $outer_variable&quot;
+echo
+
+(
+# Запуск в подоболочке
+
+echo &quot;внутри подоболочки outer_variable = $outer_variable&quot;
+inner_variable=внутренняя_переменная  # Инициализировать
+echo &quot;внутри подоболочки inner_variable = $inner_variable&quot;
+outer_variable=внутренняя_переменная  # Как думаете? Изменит внешнюю переменную?
+echo &quot;внутри подоболочки outer_variable = $outer_variable&quot;
+
+# Выход из подоболочки
+)
+
+echo
+echo &quot;за пределами подоболочки inner_variable = $inner_variable&quot;  # Ничего не выводится.
+echo &quot;за пределами подоболочки outer_variable = $outer_variable&quot;  # внешняя_переменная.
+echo
+
+exit 0
+</pre>
+          </div>
+
+          <p><a
+           name="BADREAD0"></a></p>
+
+          <p>Передача вывода от <strong
+           class="COMMAND">echo</strong> по <a
+           href="#PIPEREF">конвейеру</a> команде <a
+           href="#READREF">read</a> может давать неожиданные
+          результаты. В этом сценарии, команда <strong
+           class="COMMAND">read</strong> действует так, как будто бы
+          она была запущена в подоболочке. Вместо нее лучше
+          использовать команду <a
+           href="#SETREF">set</a> (см. <a
+           href="#SETPOS">Пример 11-14</a>).</p>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="BADREAD"></a>
+
+            <p><strong>Пример 31-2. Передача вывода от команды echo
+            команде read, по конвейеру</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+#  badread.sh:
+#  Попытка использования &#39;echo&#39; и &#39;read&#39;
+#+ для записи значений в переменные.
+
+a=aaa
+b=bbb
+c=ccc
+
+echo &quot;один два три&quot; | read a b c
+# Попытка записать значения в переменные a, b и c.
+
+echo
+echo &quot;a = $a&quot;  # a = aaa
+echo &quot;b = $b&quot;  # b = bbb
+echo &quot;c = $c&quot;  # c = ccc
+# Присваивания не произошло.
+
+# ------------------------------
+
+# Альтернативный вариант.
+
+var=`echo &quot;один два три&quot;`
+set -- $var
+a=$1; b=$2; c=$3
+
+echo &quot;-------&quot;
+echo &quot;a = $a&quot;  # a = один
+echo &quot;b = $b&quot;  # b = два
+echo &quot;c = $c&quot;  # c = три
+# На этот раз все в порядке.
+
+# ------------------------------
+
+#  Обратите внимание: в подоболочке &#39;read&#39;, для первого варианта, переменные присваиваются нормально.
+#  Но только в подоболочке.
+
+a=aaa          # Все сначала.
+b=bbb
+c=ccc
+
+echo; echo
+echo &quot;один два три&quot; | ( read a b c;
+echo &quot;Внутри подоболочки: &quot;; echo &quot;a = $a&quot;; echo &quot;b = $b&quot;; echo &quot;c = $c&quot; )
+# a = один
+# b = два
+# c = три
+echo &quot;-------&quot;
+echo &quot;Снаружи: &quot;
+echo &quot;a = $a&quot;  # a = aaa
+echo &quot;b = $b&quot;  # b = bbb
+echo &quot;c = $c&quot;  # c = ccc
+echo
+
+exit 0
+</pre>
+          </div>
+
+          <p>Огромный риск, для безопасности системы, представляет
+          использование в скриптах команд, с установленным битом <span
+           class="QUOTE">&quot;suid&quot;</span>. <a
+           name="AEN13453"
+           href="#FTN.AEN13453"><span
+           class="footnote">[61]</span></a></p>
+
+          <p>Использование сценариев в качестве CGI-приложений может
+          приводить к серьезным проблемам из-за отсутствия контроля
+          типов переменных. Более того, они легко могут быть заменены
+          взломщиком на его собственные сценарии.</p>
+
+          <p>Bash не совсем корректно обрабатывает строки, содержащие
+          <a
+           href="#DOUBLESLASHREF">двойной слэш (<span
+           class="TOKEN">//</span>)</a>.</p>
+
+          <p>Сценарии на языке Bash, созданные для Linux или BSD
+          систем, могут потребовать доработки, перед тем как они смогут
+          быть запущены в коммерческой версии UNIX. Такие сценарии, как
+          правило, используют GNU-версии команд и утилит, которые имеют
+          лучшую функциональность, нежели их аналоги в UNIX. Это
+          особенно справедливо для таких утилит обработки текста, как
+          <a
+           href="#TRREF">tr</a>.</p>
+
+          <table
+           border="0"
+           width="100%"
+           cellspacing="0"
+           cellpadding="0"
+           class="EPIGRAPH">
+            <tr>
+              <td
+               width="45%"> </td>
+
+              <td
+               width="45%"
+               align="left"
+               valign="top">
+                <p><em>Danger is near thee --</em></p>
+
+                <p><em>Beware, beware, beware, beware.</em></p>
+
+                <p><em>Many brave hearts are asleep in the
+                deep.</em></p>
+
+                <p><em>So beware --</em></p>
+
+                <p><em>Beware.</em></p>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+               width="45%"> </td>
+
+              <td
+               width="45%"
+               align="right"
+               valign="top"><em><span
+               class="ATTRIBUTION">A.J. Lamb and H.W.
+              Petrie</span></em></td>
+            </tr>
+          </table>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="SCRSTYLE"></a>Глава 32. Стиль программирования</h1>
+
+          <p>Возьмите в привычку структурный и систематический подход к
+          программированию на языке командной оболочки. Даже для
+          сценариев <span
+           class="QUOTE">&quot;выходного дня&quot;</span> и <span
+           class="QUOTE">&quot;писаных на коленке&quot;</span>, не
+          поленитесь, найдите время для того, чтобы разложить свои
+          мысли по полочкам и продумать структуру будущего скрипта
+          прежде чем приниматься за кодирование.</p>
+
+          <p>Ниже приводится несколько рекомендаций по оформлению
+          сценариев, однако их не следует рассматривать как <span
+           class="emphasis"><em
+           class="EMPHASIS">Официальное Руководство</em></span>.</p>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="UNOFFICIALST"></a>32.1. Неофициальные рекомендации
+            по оформлению сценариев</h2>
+
+            <ul>
+              <li>
+                <p>Комментируйте свой код. Это сделает ваши сценарии
+                понятнее для других, и более простыми, в обслуживании,
+                для вас.</p>
+<pre
+ class="PROGRAMLISTING">
+PASS=&quot;$PASS${MATRIX:$(($RANDOM%${#MATRIX})):1}&quot;
+# Эта строка имела некоторый смысл в момент написания,
+# но через год-другой будет очень тяжело вспомнить -- что она делает.
+# (Из сценария &quot;pw.sh&quot;, автор: Antek Sawicki)
+</pre>
+                <br>
+                <br>
+
+                <p>Добавляйте заголовочные комментарии в начале
+                сценария и перед функциями.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+#************************************************#
+#                   xyz.sh                       #
+#             автор: Bozo Bozeman                #
+#                Июль 05, 2001                   #
+#                                                #
+#          Удаление файлов проекта.              #
+#************************************************#
+
+BADDIR=65                       # Нет такого каталога.
+projectdir=/home/bozo/projects  # Каталог проекта.
+
+# ------------------------------------------------------- #
+# cleanup_pfiles ()                                       #
+# Удаляет все файлы в заданном каталоге.                  #
+# Параметры: $target_directory                            #
+# Возвращаемое значение: 0 -- в случае успеха,            #
+#                        $BADDIR -- в случае ошибки.      #
+# ------------------------------------------------------- #
+cleanup_pfiles ()
+{
+  if [ ! -d &quot;$1&quot; ]  # Проверка существования заданного каталога.
+  then
+    echo &quot;$1 -- не является каталогом.&quot;
+    return $BADDIR
+  fi
+
+  rm -f &quot;$1&quot;/*
+  return 0   # Успешное завершение функции.
+}
+
+cleanup_pfiles $projectdir
+
+exit 0
+</pre>
+                Не забывайте начинать ваш сценарий с sha-bang -- <span
+                 class="emphasis"><em
+                 class="EMPHASIS">#!/bin/bash</em></span>.<br>
+                <br>
+              </li>
+
+              <li>
+                <p>Заменяйте повторяющиеся значения константами. Это
+                сделает ваш сценарий более простым для понимания и
+                позволит вносить изменения, не опасаясь за его
+                работоспособность.</p>
+<pre
+ class="PROGRAMLISTING">
+if [ -f /var/log/messages ]
+then
+  ...
+fi
+# Представьте себе, что через пару лет
+# вы захотите изменить /var/log/messages на /var/log/syslog.
+# Тогда вам придется отыскать все строки,
+# содержащие /var/log/messages, и заменить их на /var/log/syslog.
+# И проверить несколько раз -- не пропустили ли что-нибудь.
+
+# Использование &quot;констант&quot; дает лучший способ:
+LOGFILE=/var/log/messages  # Если и придется изменить, то только в этой строке.
+if [ -f &quot;$LOGFILE&quot; ]
+then
+  ...
+fi
+</pre>
+                <br>
+                <br>
+              </li>
+
+              <li>
+                <p>В качестве имен переменных и функций выбирайте
+                осмысленные названия.</p>
+<pre
+ class="PROGRAMLISTING">
+fl=`ls -al $dirname`                 # Не очень удачное имя переменной.
+file_listing=`ls -al $dirname`       # Уже лучше.
+
+
+MAXVAL=10   # Пишите имена констант в верхнем регистре.
+while [ &quot;$index&quot; -le &quot;$MAXVAL&quot; ]
+...
+
+
+E_NOTFOUND=75                        # Имена кодов ошибок -- в верхнем регистре,
+                                     # к тому же, их желательно дополнять префиксом &quot;E_&quot;.
+if [ ! -e &quot;$filename&quot; ]
+then
+  echo &quot;Файл $filename не найден.&quot;
+  exit $E_NOTFOUND
+fi
+
+
+MAIL_DIRECTORY=/var/spool/mail/bozo  # Имена переменных окружения
+                                     # так же желательно записывать символами
+                                     # в верхнем регистре.
+export MAIL_DIRECTORY
+
+
+GetAnswer ()                         # Смешивание символов верхнего и нижнего решистров
+                                     # удобно использовать для имен функций.
+{
+  prompt=$1
+  echo -n $prompt
+  read answer
+  return $answer
+}
+
+GetAnswer &quot;Ваше любимое число? &quot;
+favorite_number=$?
+echo $favorite_number
+
+
+_uservariable=23                     # Допустимо, но не рекомендуется.
+# Желательно, чтобы пользовательские переменные не начинались с символа подчеркивания.
+# Так обычно начинаются системные переменные.
+</pre>
+                <br>
+                <br>
+              </li>
+
+              <li>
+                <p>Используйте смысловые имена для <a
+                 href="#EXITCOMMANDREF">кодов завершения</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+E_WRONG_ARGS=65
+...
+...
+exit $E_WRONG_ARGS
+</pre>
+                См. так же <a
+                 href="#EXITCODES">Приложение C</a>.<br>
+                <br>
+              </li>
+
+              <li>
+                <p>Разделяйте большие сложные сценарии на серию более
+                коротких и простых модулей. Пользуйтесь функциями. См.
+                <a
+                 href="#EX79">Пример 34-4</a>.</p>
+              </li>
+
+              <li>
+                <p>Не пользуйтесь сложными конструкциями, если их можно
+                заменить простыми.</p>
+<pre
+ class="PROGRAMLISTING">
+COMMAND
+if [ $? -eq 0 ]
+...
+# Избыточно и неинтуитивно.
+
+if COMMAND
+...
+# Более понятно и коротко.
+</pre>
+                <br>
+                <br>
+              </li>
+            </ul>
+
+            <table
+             border="0"
+             width="100%"
+             cellspacing="0"
+             cellpadding="0"
+             class="EPIGRAPH">
+              <tr>
+                <td
+                 width="45%"> </td>
+
+                <td
+                 width="45%"
+                 align="left"
+                 valign="top">
+                  <p><em>... читая исходные тексты сценариев на Bourne
+                  shell (/bin/sh). Я был потрясен тем, насколько
+                  непонятно и загадочно могут выглядеть очень простые
+                  алгоритмы из-за неправильного оформления кода. Я не
+                  раз спрашивал себя: <span
+                   class="QUOTE">&quot;Неужели кто-то может гордиться
+                  таким кодом?&quot;</span></em></p>
+                </td>
+              </tr>
+
+              <tr>
+                <td
+                 width="45%"> </td>
+
+                <td
+                 width="45%"
+                 align="right"
+                 valign="top"><em><span
+                 class="ATTRIBUTION">Landon Noll</span></em></td>
+              </tr>
+            </table>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="MISCELLANY"></a>Глава 33. Разное</h1>
+
+          <table
+           border="0"
+           width="100%"
+           cellspacing="0"
+           cellpadding="0"
+           class="EPIGRAPH">
+            <tr>
+              <td
+               width="45%"> </td>
+
+              <td
+               width="45%"
+               align="left"
+               valign="top">
+                <p><em>Практически никто не знает грамматики Bourne
+                shell-а. Даже изучение исходных текстов не дает ее
+                полного понимания.</em></p>
+              </td>
+            </tr>
+
+            <tr>
+              <td
+               width="45%"> </td>
+
+              <td
+               width="45%"
+               align="right"
+               valign="top"><em><span
+               class="ATTRIBUTION">Tom Duff</span></em></td>
+            </tr>
+          </table>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="INTANDNONINT"></a>33.1. Интерактивный и
+            неинтерактивный режим работы</h2>
+
+            <p>В <span
+             class="emphasis"><em
+             class="EMPHASIS">интеракивном</em></span> режиме, оболочка
+            читает команды, вводимые пользователем, с устройства <tt
+             class="FILENAME">tty</tt>. Кроме того, такая оболочка
+            считывает конфигурационные файлы на запуске, выводит строку
+            приглашения к вводу (prompt), и, по-умолчанию, разрешает
+            управление заданиями. Пользователь имеет возможность <span
+             class="emphasis"><em
+             class="EMPHASIS">взаимодействия</em></span> с
+            оболочкой.</p>
+
+            <p>Сценарий всегда запускается в неинтерактивном режиме.
+            Но, не смотря на это, он сохраняет доступ к своему <tt
+             class="FILENAME">tty</tt>. И даже может эмулировать
+            интерактивный режим работы.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+MY_PROMPT=&#39;$ &#39;
+while :
+do
+  echo -n &quot;$MY_PROMPT&quot;
+  read line
+  eval &quot;$line&quot;
+  done
+
+exit 0
+
+# Этот сценарий, как иллюстрация к вышесказанному, предоставлен
+# Stephane Chazelas (спасибо).
+</pre>
+            <br>
+            <br>
+
+            <p>Будем считать <span
+             class="emphasis"><em
+             class="EMPHASIS">интерактивным</em></span> такой сценарий,
+            который может принимать ввод от пользователя, обычно с
+            помощью команды <a
+             href="#READREF">read</a> (см. <a
+             href="#EX36">Пример 11-2</a>). В <span
+             class="QUOTE">&quot;реальной жизни&quot;</span> все
+            намного сложнее. Пока же, будем придерживаться
+            предположения о том, что интерактивный сценарий ограничен
+            рамками tty, с которого сценарий был запущен
+            пользователемa, т.е консоль или окно xterm.</p>
+
+            <p>Сценарии начальной инициализации системы не являются
+            интерактивными, поскольку они не предполагают вмешательство
+            человека в процессе своей работы. Большая часть сценариев,
+            выполняющих администрирование и обслуживание системы -- так
+            же работают в неинтерактивном режиме. Многие задачи
+            автоматизации труда администратора очень трудно представить
+            себе без неинтерактивных сценариев.</p>
+
+            <p>Неинтерактивные сценарии прекрасно могут работать в
+            фоне, в то время, как интерактивные -- подвисают,
+            останавливаясь на операциях, ожидающих ввода пользователя.
+            Сложности, возникающие с запуском интерактивных сценариев в
+            фоновом режиме, могут быть преодолены с помощью <strong
+             class="COMMAND">expect</strong>-сценария или <a
+             href="#HEREDOCREF">встроенного документа</a>. В простейших
+            случаях, можно организовать перенаправление ввода из файла
+            в команду <strong
+             class="COMMAND">read</strong> (<strong
+             class="COMMAND">read variable &lt;file</strong>). Эти
+            приемы позволят создавать сценарии, которые смогут работать
+            как в интерактивном, так и в неинтерактивном режимах.</p>
+
+            <p>Если внутри сценария необходимо проверить режим работы
+            -- интерактивный или неинтерактивный, это можно сделать
+            проверкой переменной окружения <a
+             href="#PS1REF">$PS1</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+if [ -z $PS1 ] # интерактивный режим?
+then
+  # неинтерактивный
+  ...
+else
+  # интерактивный
+  ...
+fi
+</pre>
+            <a
+             name="IITEST"></a>Еще один способ -- проверка установки
+            флага <span
+             class="QUOTE">&quot;i&quot;</span> в переменной <a
+             href="#FLPREF">$-</a>. 
+<pre
+ class="PROGRAMLISTING">
+case $- in
+*i*)    # интерактивный режим
+;;
+*)      # неинтерактивный режим
+;;
+# (Из &quot;UNIX F.A.Q.,&quot; 1993)
+</pre>
+            <br>
+            <br>
+
+            <div
+             class="NOTE">
+              <table
+               class="NOTE"
+               width="100%"
+               border="0">
+                <tr>
+                  <td
+                   width="25"
+                   align="center"
+                   valign="top"><img
+                   src="misc/abs-book/images/note.gif"
+                   hspace="5"
+                   alt="Note"></td>
+
+                  <td
+                   align="left"
+                   valign="top">
+                    <p>Сценарий может принудительно запускаться в
+                    интерактивном режиме, для этого необходимо указать
+                    ключ <span
+                     class="TOKEN">-i</span> в строке-заголовке <tt
+                     class="USERINPUT"><strong>#!/bin/bash
+                    -i</strong></tt>. Однако вы должны помнить о том,
+                    что в таких случаях сценарий может выдавать
+                    сообщения об ошибках даже тогда, когда ошибок, по
+                    сути, нет.</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="WRAPPER"></a>33.2. Сценарии-обертки</h2>
+
+            <p><a
+             name="SHWRAPPER"></a></p>
+
+            <p><span
+             class="QUOTE">&quot;Обертки&quot;</span> -- это сценарии,
+            которые содержат один или несколько вызовов системных
+            команд или утилит, с длинным списком параметров. Такой
+            прием освобождает пользователя от необходимости вводить
+            вручную сложные и длинные команды из командной строки. Он
+            особенно полезен при работе с <a
+             href="#SEDREF">sed</a> и <a
+             href="#AWKREF">awk</a>.</p>
+
+            <p>Сценарии <strong
+             class="COMMAND">sed</strong> или <strong
+             class="COMMAND">awk</strong>, как правило вызываются в
+            форме: <tt
+             class="USERINPUT"><strong>sed -e <tt
+             class=
+            "REPLACEABLE"><em>&#39;commands&#39;</em></tt></strong></tt>
+            или <tt
+             class="USERINPUT"><strong>awk <tt
+             class=
+            "REPLACEABLE"><em>&#39;commands&#39;</em></tt></strong></tt>.
+            &quot;Заворачивая&quot; такие вызовы в сценарий на языке
+            командной оболочки, мы делаем их использование более
+            простым для конечного пользователя. Кроме того, этот прием
+            позволяет комбинировать вызовы <strong
+             class="COMMAND">sed</strong> и <strong
+             class="COMMAND">awk</strong>, например в <a
+             href="#PIPEREF">конвейере</a>, позволяя передавать данные
+            с выхода одной утилиты на вход другой.</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="EX3"></a>
+
+              <p><strong>Пример 33-1. сценарий-обертка</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Этот простой сценарий удаляет пустые строки из текстового файла.
+# Проверка входных аргументов не производится.
+#
+# Однако вы можете дополнить сценарий такой проверкой,
+# добавив нечто подобное:
+# if [ -z &quot;$1&quot; ]
+# then
+#  echo &quot;Порядок использования: `basename $0` текстовый_файл&quot;
+#  exit 65
+# fi
+
+# Для выполнения этих же действий,
+# из командной строки можно набрать
+#    sed -e &#39;/^$/d&#39; filename
+
+
+sed -e /^$/d &quot;$1&quot;
+#  &#39;-e&#39; -- означает команду &quot;editing&quot; (правка), за которой следуют необязательные параметры.
+#  &#39;^&#39; -- с начала строки, &#39;$&#39; -- до ее конца.
+#  Что соответствует строкам, которые не содержат символов между началом и концом строки,
+#+ т.е. -- пустым строкам.
+#  &#39;d&#39; -- команда &quot;delete&quot; (удалить).
+
+#  Использование кавычек дает возможность
+#+ обрабатывать файлы, чьи имена содержат пробелы.
+
+exit 0
+</pre>
+            </div>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="EX4"></a>
+
+              <p><strong>Пример 33-2. Более сложный пример
+              сценария-обертки</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# &quot;subst&quot;, Сценарий замены по шаблону
+# т.е., &quot;subst Smith Jones letter.txt&quot;.
+
+ARGS=3
+E_BADARGS=65   # Неверное число аргументов.
+
+if [ $# -ne &quot;$ARGS&quot; ]
+# Проверка числа аргументов.
+then
+  echo &quot;Проядок использования: `basename $0` old-pattern new-pattern filename&quot;
+  exit $E_BADARGS
+fi
+
+old_pattern=$1
+new_pattern=$2
+
+if [ -f &quot;$3&quot; ]
+then
+    file_name=$3
+else
+    echo &quot;Файл \&quot;$3\&quot; не найден.&quot;
+    exit $E_BADARGS
+fi
+
+# Здесь, собственно, выполняется сама работа по поиску и замене.
+sed -e &quot;s/$old_pattern/$new_pattern/g&quot; $file_name
+# &#39;s&#39; -- команда &quot;substitute&quot; (замены),
+# а /pattern/ -- задает шаблон искомого текста.
+# &quot;g&quot; -- флаг &quot;global&quot; (всеобщий), означает &quot;выполнить подстановку для *каждого*
+# обнаруженного $old_pattern во всех строках, а не только в первой строке.
+
+exit 0    # При успешном завершении сценария -- вернуть 0.
+</pre>
+            </div>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="COLTOTALER"></a>
+
+              <p><strong>Пример 33-3. Сценарий-обертка вокруг сценария
+              awk</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Суммирует числа в заданном столбце из заданного файла.
+
+ARGS=2
+E_WRONGARGS=65
+
+if [ $# -ne &quot;$ARGS&quot; ] # Проверка числа аргументов.
+then
+   echo &quot;Порядок использования: `basename $0` имя_файла номер_столбца&quot;
+   exit $E_WRONGARGS
+fi
+
+filename=$1
+column_number=$2
+
+# Здесь используется прием передачи переменных
+# из командной оболочки в сценарий awk .
+
+# Многострочный сценарий awk должен записываться в виде:   awk &#39; ..... &#39;
+
+
+# Начало awk-сценария.
+# -----------------------------
+awk &#39;
+
+{ total += $&#39;&quot;${column_number}&quot;&#39;
+}
+END {
+     print total
+}
+
+&#39; &quot;$filename&quot;
+# -----------------------------
+# Конец awk-сценария.
+
+
+#   С точки зрения безопасности, передача shell-переменных
+#   во встроенный awk-скрипт, потенциально опасна,
+#   поэтому, Stephane Chazelas предлагает следующую альтернативу:
+#   ---------------------------------------
+#   awk -v column_number=&quot;$column_number&quot; &#39;
+#   { total += $column_number
+#   }
+#   END {
+#       print total
+#   }&#39; &quot;$filename&quot;
+#   ---------------------------------------
+
+
+exit 0
+</pre>
+            </div>
+
+            <p><a
+             name="PERLREF"></a>Для сценариев, которые должны строиться
+            по принципу швейцарского армейского ножа -- &quot;все в
+            одном&quot;, можно порекомендовать Perl. Perl совмещает в
+            себе мощь и гибкость <strong
+             class="COMMAND">sed</strong>, <strong
+             class="COMMAND">awk</strong> и языка программирования
+            <strong
+             class="COMMAND">C</strong>. Он поддерживает модульность и
+            объектно-ориентированный стиль программирования. Короткие
+            сценарии Perl могут легко встраиваться в сценарии командной
+            оболочки, и даже полностью заменить из (хотя автор весьма
+            скептически относится к последнему утверждению).</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="EX56"></a>
+
+              <p><strong>Пример 33-4. Сценарий на языке Perl,
+              встроенный в Bash-скрипт</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Это команды shell, предшествующий сценарию на Perl.
+echo &quot;Эта строка выводится средствами Bash, перед выполнением встроенного Perl-скрипта, в \&quot;$0\&quot;.&quot;
+echo &quot;==============================================================================================&quot;
+
+perl -e &#39;print &quot;Эта строка выводится средствами Perl.\n&quot;;&#39;
+# Подобно sed, Perl тоже использует ключ &quot;-e&quot;.
+
+echo &quot;=====================================&quot;
+
+exit 0
+</pre>
+            </div>
+
+            <p>Допускается даже комбинирование сценариев на Bash и на
+            Perl, в пределах одного файла. В зависимости от того, какая
+            часть сценария должна исполняться, сценарий вызывается с
+            указанием требуемого интерпретатора.</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="BASHANDPERL"></a>
+
+              <p><strong>Пример 33-5. Комбинирование сценария Bash и
+              Perl в одном файле</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# bashandperl.sh
+
+echo &quot;Вас приветствует часть сценария, написанная на Bash.&quot;
+# Далее могут следовать другие команды Bash.
+
+exit 0
+# Конец сценария на Bash.
+
+# =======================================================
+
+#!/usr/bin/perl
+# Эта часть сценария должна вызываться с ключом -x.
+
+print &quot;Вас приветствует часть сценария, написанная на Perl.\n&quot;;
+# Далее могут следовать другие команды Perl.
+
+# Конец сценария на Perl.
+</pre>
+            </div>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>bash bashandperl.sh</strong></tt>
+<tt
+ class=
+"COMPUTEROUTPUT">Вас приветствует часть сценария, написанная на Bash.</tt>
+
+
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>perl -x bashandperl.sh</strong></tt>
+<tt
+ class=
+"COMPUTEROUTPUT">Вас приветствует часть сценария, написанная на Perl.</tt>
+             
+</pre>
+            <br>
+            <br>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="TESTSANDCOMPARISONS"></a>33.3. Операции сравнения:
+            Альтернативные решения</h2>
+
+            <p>Операции сравнения, выполняемые с помощью конструкции <a
+             href="#DBLBRACKETS">[[ ]]</a>, могут оказаться
+            предпочтительнее, чем <tt
+             class="USERINPUT"><strong>[ ]</strong></tt>. Аналогично,
+            при сравнении чисел, в более выгодном свете представляется
+            конструкция <a
+             href="#DBLPARENS">(( ))</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+a=8
+
+# Все, приведенные ниже, операции сравнения -- эквивалентны.
+test &quot;$a&quot; -lt 16 &amp;&amp; echo &quot;да, $a &lt; 16&quot;         # &quot;И-список&quot;
+/bin/test &quot;$a&quot; -lt 16 &amp;&amp; echo &quot;да, $a &lt; 16&quot;
+[ &quot;$a&quot; -lt 16 ] &amp;&amp; echo &quot;да, $a &lt; 16&quot;
+[[ $a -lt 16 ]] &amp;&amp; echo &quot;да, $a &lt; 16&quot;          # Внутри [[ ]] и (( )) переменные
+(( a &lt; 16 )) &amp;&amp; echo &quot;да, $a &lt; 16&quot;             # не обязательно брать в кавычки.
+
+city=&quot;New York&quot;
+# Опять же, все, приведенные ниже, операции -- эквивалентны.
+test &quot;$city&quot; \&lt; Paris &amp;&amp; echo &quot;Да, Paris больше, чем $city&quot;  # В смысле ASCII-строк.
+/bin/test &quot;$city&quot; \&lt; Paris &amp;&amp; echo &quot;Да, Paris больше, чем $city&quot;
+[ &quot;$city&quot; \&lt; Paris ] &amp;&amp; echo &quot;Да, Paris больше, чем $city&quot;
+[[ $city &lt; Paris ]] &amp;&amp; echo &quot;Да, Paris больше, чем $city&quot;    # Кавычки вокруг $city не обязательны.
+
+# Спасибо S.C.
+</pre>
+            <br>
+            <br>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="RECURSIONSCT"></a>33.4. Рекурсия</h2>
+
+            <p>Может ли сценарий <a
+             href="#RECURSIONREF">рекурсивно</a> вызывать себя самого?
+            Да, может!</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="RECURSE"></a>
+
+              <p><strong>Пример 33-6. Сценарий (бесполезный), который
+              вызывает себя сам</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# recurse.sh
+
+#  Может ли сценарий вызвать себя сам?
+#  Да, но есть ли в этом смысл?
+
+RANGE=10
+MAXVAL=9
+
+i=$RANDOM
+let &quot;i %= $RANGE&quot;  # Генерация псевдослучайного числа в диапазоне 0 .. $MAXVAL.
+
+if [ &quot;$i&quot; -lt &quot;$MAXVAL&quot; ]
+then
+  echo &quot;i = $i&quot;
+  ./$0             #  Сценарий запускает новый экземпляр себя самого.
+fi                 #  если число $i больше или равно $MAXVAL.
+
+#  Если конструкцию &quot;if/then&quot; заменить на цикл &quot;while&quot;, то это вызовет определенные проблемы.
+#  Объясните -- почему?.
+
+exit 0
+</pre>
+            </div>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="PBOOK"></a>
+
+              <p><strong>Пример 33-7. Сценарий имеющий практическую
+              ценность), который вызывает себя сам</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# pb.sh: телефонная книга
+
+# Автор: Rick Boivie
+# используется с его разрешения.
+# Дополнен автором документа.
+
+MINARGS=1     # Сценарию должен быть передан, по меньшей мере, один аргумент.
+DATAFILE=./phonebook
+PROGNAME=$0
+E_NOARGS=70   # Ошибка, нет аргументов.
+
+if [ $# -lt $MINARGS ]; then
+      echo &quot;Порядок использования: &quot;$PROGNAME&quot; data&quot;
+      exit $E_NOARGS
+fi
+
+
+if [ $# -eq $MINARGS ]; then
+      grep $1 &quot;$DATAFILE&quot;
+else
+      ( shift; &quot;$PROGNAME&quot; $* ) | grep $1
+      # Рекурсивный вызов.
+fi
+
+exit 0        #  Сценарий завершает свою работу здесь.
+              #  Далее следует пример файла телефонной книги
+              #+ в котором не используются символы комментария.
+
+# ------------------------------------------------------------------------
+# Пример файла телефонной книги
+
+John Doe        1555 Main St., Baltimore, MD 21228          (410) 222-3333
+Mary Moe        9899 Jones Blvd., Warren, NH 03787          (603) 898-3232
+Richard Roe     856 E. 7th St., New York, NY 10009          (212) 333-4567
+Sam Roe         956 E. 8th St., New York, NY 10009          (212) 444-5678
+Zoe Zenobia     4481 N. Baker St., San Franciso, SF 94338   (415) 501-1631
+# ------------------------------------------------------------------------
+
+$bash pb.sh Roe
+Richard Roe     856 E. 7th St., New York, NY 10009          (212) 333-4567
+Sam Roe         956 E. 8th St., New York, NY 10009          (212) 444-5678
+
+$bash pb.sh Roe Sam
+Sam Roe         956 E. 8th St., New York, NY 10009          (212) 444-5678
+
+#  Если сценарию передаются несколько аргументов,
+#+ то выводятся только те строки, которые содержат их все.
+</pre>
+            </div>
+
+            <div
+             class="CAUTION">
+              <table
+               class="CAUTION"
+               width="100%"
+               border="0">
+                <tr>
+                  <td
+                   width="25"
+                   align="center"
+                   valign="top"><img
+                   src="misc/abs-book/images/caution.gif"
+                   hspace="5"
+                   alt="Caution"></td>
+
+                  <td
+                   align="left"
+                   valign="top">
+                    <p>Слишком глубокая рекурсия может привести к
+                    исчерпанию пространства, выделенного под стек, и
+                    &quot;вываливанию&quot; сценария по
+                    &quot;segfault&quot;.</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="COLORIZING"></a>33.5. <span
+             class="QUOTE">&quot;Цветные&quot;</span> сценарии</h2>
+
+            <p>Для установки атрибутов отображения информации на
+            экране, таких как: жирный текст, цвет символов, цвет фона и
+            т.п., с давних пор используются ANSI <a
+             name="AEN13625"
+             href="#FTN.AEN13625"><span
+             class="footnote">[62]</span></a>
+            escape-последовательности. Эти последовательности широко
+            используются в <a
+             href="#DOSBATCH1">пакетных файлах DOS</a>, эти же
+            последовательности используются и в сценариях Bash.</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="EX30A"></a>
+
+              <p><strong>Пример 33-8. <span
+               class="QUOTE">&quot;Цветная&quot;</span> адресная
+              книга</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# ex30a.sh: Версия сценария ex30.sh, с добавлением цвета .
+#           Грубый пример базы данных
+
+
+clear                                   # Очистка экрана
+
+echo -n &quot;          &quot;
+echo -e &#39;\E[37;44m&#39;&quot;\033[1mСписок\033[0m&quot;
+                                        # Белый текст на синем фоне
+echo; echo
+echo -e &quot;\033[1mВыберите интересующую Вас персону:\033[0m&quot;
+                                        # Жирный шрифт
+tput sgr0
+echo &quot;(Введите только первую букву имени.)&quot;
+echo
+echo -en &#39;\E[47;34m&#39;&quot;\033[1mE\033[0m&quot;   # Синий
+tput sgr0                               # сброс цвета
+echo &quot;vans, Roland&quot;                     # &quot;[E]vans, Roland&quot;
+echo -en &#39;\E[47;35m&#39;&quot;\033[1mJ\033[0m&quot;   # Пурпурный
+tput sgr0
+echo &quot;ones, Mildred&quot;
+echo -en &#39;\E[47;32m&#39;&quot;\033[1mS\033[0m&quot;   # Зеленый
+tput sgr0
+echo &quot;mith, Julie&quot;
+echo -en &#39;\E[47;31m&#39;&quot;\033[1mZ\033[0m&quot;   # Красный
+tput sgr0
+echo &quot;ane, Morris&quot;
+echo
+
+read person
+
+case &quot;$person&quot; in
+# Обратите внимание: переменная взята в кавычки.
+
+  &quot;E&quot; | &quot;e&quot; )
+  # Пользователь может ввести как заглавную, так и строчную букву.
+  echo
+  echo &quot;Roland Evans&quot;
+  echo &quot;4321 Floppy Dr.&quot;
+  echo &quot;Hardscrabble, CO 80753&quot;
+  echo &quot;(303) 734-9874&quot;
+  echo &quot;(303) 734-9892 fax&quot;
+  echo &quot;revans@zzy.net&quot;
+  echo &quot;Старый друг и партнер по бизнесу&quot;
+  ;;
+
+  &quot;J&quot; | &quot;j&quot; )
+  echo
+  echo &quot;Mildred Jones&quot;
+  echo &quot;249 E. 7th St., Apt. 19&quot;
+  echo &quot;New York, NY 10009&quot;
+  echo &quot;(212) 533-2814&quot;
+  echo &quot;(212) 533-9972 fax&quot;
+  echo &quot;milliej@loisaida.com&quot;
+  echo &quot;Подружка&quot;
+  echo &quot;День рождения: 11 февраля&quot;
+  ;;
+
+# Информация о Smith и Zane будет добавлена позднее.
+
+          * )
+   # Выбор по-умолчанию.
+   # &quot;Пустой&quot; ввод тоже обрабатывается здесь.
+   echo
+   echo &quot;Нет данных.&quot;
+  ;;
+
+esac
+
+tput sgr0                               # Сброс цвета
+
+echo
+
+exit 0
+</pre>
+            </div>
+
+            <p>Самая простая и, на мой взгляд, самая полезная
+            escape-последовательность -- это &quot;жирный текст&quot;,
+            <strong
+             class="COMMAND">\033[1m ... \033[0m</strong>. Здесь,
+            комбинация <span
+             class="TOKEN">\033</span> представляет <span
+             class="emphasis"><em
+             class="EMPHASIS">escape</em></span>-символ, кобинация
+            <span
+             class="QUOTE">&quot;[1&quot;</span> -- включает вывод
+            жирным текстом, а <span
+             class="QUOTE">&quot;[0&quot;</span> -- выключает. Символ
+            <span
+             class="QUOTE">&quot;m&quot;</span> -- завершает каждую из
+            escape-последовательностей.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>echo -e &quot;\033[1mЭто жирный текст.\033[0m&quot;</strong></tt>
+             
+</pre>
+            <br>
+            <br>
+
+            <p>Простая escape-последовательность, которая управляет
+            атрибутом подчеркивания (в <span
+             class="emphasis"><em
+             class="EMPHASIS">rxvt</em></span> и <span
+             class="emphasis"><em
+             class="EMPHASIS">aterm</em></span>).</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>echo -e &quot;\033[4mЭто подчеркнутый текст.\033[0m&quot;</strong></tt>
+             
+</pre>
+            <br>
+            <br>
+
+            <div
+             class="NOTE">
+              <table
+               class="NOTE"
+               width="100%"
+               border="0">
+                <tr>
+                  <td
+                   width="25"
+                   align="center"
+                   valign="top"><img
+                   src="misc/abs-book/images/note.gif"
+                   hspace="5"
+                   alt="Note"></td>
+
+                  <td
+                   align="left"
+                   valign="top">
+                    <p>Ключ <tt
+                     class="OPTION">-e</tt>, в команде <strong
+                     class="COMMAND">echo</strong>, разрешает
+                    интерпретацию escape-последовательностей.</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <p>Другие escape-последовательности, изменяющие атрибуты
+            цвета:</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>echo -e &#39;\E[34;47mЭтот текст выводится синим цветом.&#39;; tput sgr0</strong></tt>
+
+
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>echo -e &#39;\E[33;44m&#39;&quot;желтый текст на синем фоне&quot;; tput sgr0</strong></tt>
+             
+</pre>
+            Команда <strong
+             class="COMMAND">tput sgr0</strong> возвращает настройки
+            терминала в первоначальное состояние.<br>
+            <br>
+
+            <table
+             class="SIDEBAR"
+             border="1"
+             cellpadding="5">
+              <tr>
+                <td>
+                  <div
+                   class="SIDEBAR">
+                    <a
+                     name="AEN13659"></a>
+
+                    <p>Вывод цветного текста осуществляется по
+                    следующему шаблону:.</p>
+
+                    <p><tt
+                     class="USERINPUT"><strong>echo -e
+                    &#39;\E[COLOR1;COLOR2mКакой либо
+                    текст.&#39;</strong></tt></p>
+
+                    <p>Где <span
+                     class="QUOTE">&quot;\E[&quot;</span> -- начало
+                    escape-последовательности. Числа <span
+                     class="QUOTE">&quot;COLOR1&quot;</span> и <span
+                     class="QUOTE">&quot;COLOR2&quot;</span>,
+                    разделенные точкой с запятой, задают цвет символов
+                    и цвет фона, в соответствии с таблицей цветов,
+                    приведенной ниже. (Порядок указания цвета текста и
+                    фона не имеет значения, поскольку диапазоны
+                    числовых значений цвета для текста и фона не
+                    пересекаются). Символ <span
+                     class="QUOTE">&quot;m&quot;</span> -- должен
+                    завершать escape-последовательность.</p>
+
+                    <p>Обратите внимание: <a
+                     href="#SNGLQUO">одиночные кавычки</a> окружают
+                    все, что следует за <strong
+                     class="COMMAND">echo -e</strong>.</p>
+                  </div>
+                </td>
+              </tr>
+            </table>
+
+            <p>Числовые значения цвета, приведенные ниже, справедливы
+            для <span
+             class="emphasis"><em
+             class="EMPHASIS">rxvt</em></span>. Для других эмуляторов
+            они могут несколько отличаться.</p>
+
+            <div
+             class="TABLE">
+              <a
+               name="AEN13673"></a>
+
+              <p><strong>Таблица 33-1. Числовые значения цвета в
+              escape-последовательностях</strong></p>
+
+              <table
+               border="1"
+               class="CALSTABLE">
+                <thead>
+                  <tr>
+                    <th
+                     align="left"
+                     valign="top">Цвет</th>
+
+                    <th
+                     align="left"
+                     valign="top">Текст</th>
+
+                    <th
+                     align="left"
+                     valign="top">Фон</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">черный</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">30</td>
+
+                    <td
+                     align="left"
+                     valign="top">40</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">красный</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">31</td>
+
+                    <td
+                     align="left"
+                     valign="top">41</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">зеленый</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">32</td>
+
+                    <td
+                     align="left"
+                     valign="top">42</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">желтый</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">33</td>
+
+                    <td
+                     align="left"
+                     valign="top">43</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">синий</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">34</td>
+
+                    <td
+                     align="left"
+                     valign="top">44</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">пурпурный</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">35</td>
+
+                    <td
+                     align="left"
+                     valign="top">45</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">зеленовато-голубой</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">36</td>
+
+                    <td
+                     align="left"
+                     valign="top">46</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">белый</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">37</td>
+
+                    <td
+                     align="left"
+                     valign="top">47</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="COLORECHO"></a>
+
+              <p><strong>Пример 33-9. Вывод цветного
+              текста</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# color-echo.sh: Вывод цветных сообщений.
+
+black=&#39;\E[30;47m&#39;
+red=&#39;\E[31;47m&#39;
+green=&#39;\E[32;47m&#39;
+yellow=&#39;\E[33;47m&#39;
+blue=&#39;\E[34;47m&#39;
+magenta=&#39;\E[35;47m&#39;
+cyan=&#39;\E[36;47m&#39;
+white=&#39;\E[37;47m&#39;
+
+
+cecho ()                     # Color-echo.
+                             # Аргумент $1 = текст сообщения
+                             # Аргумент $2 = цвет
+{
+local default_msg=&quot;Нет сообщений.&quot;
+                             # Не обязательно должна быть локальной.
+
+message=${1:-$default_msg}   # Текст сообщения по-умолчанию.
+color=${2:-$black}           # Цвет по-умолчанию черный.
+
+  echo -e &quot;$color&quot;
+  echo &quot;$message&quot;
+  tput sgr0                  # Восстановление первоначальных настроек терминала.
+  return
+}
+
+
+# Попробум что-нибудь вывести.
+# ----------------------------------------------------
+cecho &quot;Синий текст...&quot; $blue
+cecho &quot;Пурпурный текст.&quot; $magenta
+cecho &quot;Позеленевший от зависти.&quot; $green
+cecho &quot;Похоже на красный?&quot; $red
+cecho &quot;Циан, более известный как цвет морской волны.&quot; $cyan
+cecho &quot;Цвет не задан (по-умолчанию черный).&quot;
+       # Аргумент $color отсутствует.
+cecho &quot;\&quot;Пустой\&quot; цвет (по-умолчанию черный).&quot; &quot;&quot;
+       # Передан &quot;пустой&quot; аргумент цвета.
+cecho
+       # Ни сообщение ни цвет не переданы.
+cecho &quot;&quot; &quot;&quot;
+       # Функции переданы &quot;пустые&quot; аргументы $message и $color.
+# ----------------------------------------------------
+
+echo
+
+exit 0
+
+# Упражнения:
+# ---------
+# 1) Добавьте в функцию &#39;cecho ()&#39; возможность вывода &quot;жирного текста&quot;.
+# 2) Добавьте возможность управления цветом фона.
+</pre>
+            </div>
+
+            <div
+             class="CAUTION">
+              <table
+               class="CAUTION"
+               width="100%"
+               border="0">
+                <tr>
+                  <td
+                   width="25"
+                   align="center"
+                   valign="top"><img
+                   src="misc/abs-book/images/caution.gif"
+                   hspace="5"
+                   alt="Caution"></td>
+
+                  <td
+                   align="left"
+                   valign="top">
+                    <p>Однако, как обычно, в бочке меда есть ложка
+                    дегтя. <span
+                     class="emphasis"><em
+                     class="EMPHASIS">Escape-последовательности ANSI
+                    совершенно не переносимы</em></span>. Вывод в одном
+                    эмуляторе терминала (или в консоли) может
+                    разительно отличаться от вывода в другом эмуляторе.
+                    <span
+                     class="QUOTE">&quot;Расцвеченные&quot;</span>
+                    сценарии, дающие изумительно красивый вывод текста
+                    на одном терминале, могут давать совершенно
+                    нечитаемый текст на другом. Это ставит под сомнение
+                    практическую ценность <span
+                     class="QUOTE">&quot;расцвечивания&quot;</span>
+                    вывода в сценариях, низводя ее до уровня никчемной
+                    <span
+                     class="QUOTE">&quot;игрушки&quot;</span>.</p>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <p>Moshe Jacobson разработал утилиту <strong
+             class="COMMAND">color</strong> (<a
+             href="http://runslinux.net/projects/color"
+             target="_top">http://runslinux.net/projects/color</a>),
+            которая значительно упрощает работу с ANSI
+            escape-последовательностями, заменяя, только что
+            обсуждавшиеся, неуклюжие конструкции, логичным и понятным
+            синтаксисом.</p>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="OPTIMIZATIONS"></a>33.6. Оптимизация</h2>
+
+            <p>По большей части, сценарии на языке командной оболочки,
+            используются для быстрого решения несложных задач. Поэтому
+            оптимизация сценариев, по скорости исполнения, не является
+            насущной проблемой. Тем не менее, представьте себе
+            ситуацию, когда сценарий, выполняющий довольно важную
+            работу, в принципе справляется со своей задачей, но делает
+            это очень медленно. Написание же аналогичной программы на
+            языке компилирующего типа -- неприемлемо. Самое простое
+            решение -- переписать самые медленные участки кода
+            сценария. Возможно ли применить принципы оптимизации к
+            сценарию на практике?</p>
+
+            <p>Для начала проверьте все циклы в сценарии. Основная
+            масса времени уходит на работу в циклах. Если это возможно,
+            вынесите все ресурсоемкие операции за пределы циклов.</p>
+
+            <p>Старайтесь использовать <a
+             href="#BUILTINREF">встроенные</a> команды. Они исполняются
+            значительно быстрее и, как правило, не запускают
+            подоболочку при вызове.</p>
+
+            <p>Избегайте использования избыточных команд, особенно это
+            относится к <a
+             href="#PIPEREF">конвейерам</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+cat &quot;$file&quot; | grep &quot;$word&quot;
+
+grep &quot;$word&quot; &quot;$file&quot;
+
+#  Эти команды дают один и тот же результат,
+#+ но вторая работает быстрее, поскольку запускает на один подпроцесс меньше.
+</pre>
+            Не следует злоупотреблять командой <a
+             href="#CATREF">cat</a>.<br>
+            <br>
+
+            <p>Для профилирования сценариев, можно воспользоваться
+            командами <a
+             href="#TIMREF">time</a> и <a
+             href="#TIMESREF">times</a>. Не следует пренебрегать
+            возможностью переписать особенно критичные участки кода на
+            языке C или даже на ассемблере.</p>
+
+            <p>Попробуйте минимизировать количество операций с файлами.
+            Bash не &quot;страдает&quot; излишней эффективностью при
+            работе с файлами, попробуйте применить специализированные
+            средства для работы с файлами в сценариях, такие как <a
+             href="#AWKREF">awk</a> или <a
+             href="#PERLREF">Perl</a>.</p>
+
+            <p>Записывайте сценарии в структурированной форме, это
+            облегчит их последующую реорганизацию и оптимизацию.
+            Помните, что значительная часть методов оптимизации кода,
+            существующих в языках высокого уровня, вполне применима и к
+            сценариям, однако есть и такие, которые не могут
+            применяться. Основной критерий здесь -- это здравый
+            смысл.</p>
+
+            <p>Прекрасный пример того, как оптимизация может сократить
+            время работы сценария, вы найдете в <a
+             href="#MONTHLYPMT">Пример 12-32</a>.</p>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="ASSORTEDTIPS"></a>33.7. Разные советы</h2>
+
+            <ul>
+              <li>
+                <p>Для ведения учета использования сценария
+                пользователями, добавьте следующие строки в сценарий.
+                Они запишут в файл отчета название сценария и время
+                запуска.</p>
+<pre
+ class="PROGRAMLISTING">
+# Добавление (&gt;&gt;) учетной записи, об использовании сценария, в файл отчета.
+
+date&gt;&gt; $SAVE_FILE      # Дата и время.
+echo $0&gt;&gt; $SAVE_FILE   # Название сценария.
+echo&gt;&gt; $SAVE_FILE      # Пустая строка -- как разделитель записей.
+
+# Не забудьте определить переменную окружения SAVE_FILE в ~/.bashrc
+# (что нибудь, типа: ~/.scripts-run)
+</pre>
+                <br>
+                <br>
+              </li>
+
+              <li>
+                <p><a
+                 name="PREPENDREF"></a></p>
+
+                <p>Оператор <span
+                 class="TOKEN">&gt;&gt;</span> производит добавление
+                строки в конец файла. А как быть, если надо добавить
+                строку в начало существующего файла?</p>
+<pre
+ class="PROGRAMLISTING">
+file=data.txt
+title=&quot;***Это титульная строка в текстовом файле***&quot;
+
+echo $title | cat - $file &gt;$file.new
+# &quot;cat -&quot; объединяет stdout с содержимым $file.
+#  В результате получится
+#+ новый файл $file.new, в начало которого добавлена строка $title.
+</pre>
+                <br>
+                <br>
+
+                <p>Само собой разумеется, то же самое можно сделать с
+                помощью <a
+                 href="#SEDREF">sed</a>.</p>
+              </li>
+
+              <li>
+                <p>Сценарий командной оболочки может использоваться как
+                команда внутри другого сценария командной оболочки,
+                <span
+                 class="emphasis"><em
+                 class="EMPHASIS">Tcl</em></span>, или <span
+                 class="emphasis"><em
+                 class="EMPHASIS">wish</em></span> сценария или, даже в
+                <a
+                 href="#MAKEFILEREF">Makefile</a>. Он может быть вызван
+                как внешняя команда из программы на языке C, с помощью
+                функции <tt
+                 class="REPLACEABLE"><em>system()</em></tt>, т.е. <tt
+                 class=
+                "REPLACEABLE"><em>system(&quot;script_name&quot;);</em></tt>.</p>
+              </li>
+
+              <li>
+                <p>Собирайте свои библиотеки часто используемых функций
+                и определений. Эти &quot;библиотеки&quot; могут быть
+                <span
+                 class="QUOTE">&quot;подключены&quot;</span> к
+                сценариям, с помощью команды <a
+                 href="#DOTREF">точка</a> (<strong
+                 class="COMMAND">.</strong>) или <a
+                 href="#SOURCEREF">source</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+# Сценарий-библиотека
+# ------ -------
+
+# Обратите внимание:
+# Здесь нет sha-bang (&quot;#!&quot;).
+# И нет &quot;живого кода&quot;.
+
+
+# Определения переменных
+
+ROOT_UID=0             # UID root-а, 0.
+E_NOTROOT=101          # Ошибка -- &quot;обычный пользователь&quot;.
+MAXRETVAL=255          # Максимальное значение, которое могут возвращать функции.
+SUCCESS=0
+FAILURE=-1
+
+
+
+# Функции
+
+Usage ()               # Сообщение &quot;Порядок использования:&quot;.
+{
+  if [ -z &quot;$1&quot; ]       # Нет аргументов.
+  then
+    msg=filename
+  else
+    msg=$@
+  fi
+
+  echo &quot;Порядок использования: `basename $0` &quot;$msg&quot;&quot;
+}
+
+
+Check_if_root ()       # Проверка прав пользователя.
+{                      # из примера &quot;ex39.sh&quot;.
+  if [ &quot;$UID&quot; -ne &quot;$ROOT_UID&quot; ]
+  then
+    echo &quot;Этот сценарий должен запускаться с привилегиями root.&quot;
+    exit $E_NOTROOT
+  fi
+}
+
+
+CreateTempfileName ()  # Создание &quot;уникального&quot; имени для временного файла.
+{                      # Из примера &quot;ex51.sh&quot;.
+  prefix=temp
+  suffix=`eval date +%s`
+  Tempfilename=$prefix.$suffix
+}
+
+
+isalpha2 ()            # Проверка, состоит ли строка только из алфавитных символов.
+{                      # Из примера &quot;isalpha.sh&quot;.
+  [ $# -eq 1 ] || return $FAILURE
+
+  case $1 in
+  *[!a-zA-Z]*|&quot;&quot;) return $FAILURE;;
+  *) return $SUCCESS;;
+  esac                 # Спасибо S.C.
+}
+
+
+abs ()                           # Абсолютное значение.
+{                                # Внимание: Максимально возможное возвращаеиое значение
+                                 # не может превышать 255.
+  E_ARGERR=-999999
+
+  if [ -z &quot;$1&quot; ]                 # Проверка наличия входного аргумента.
+  then
+    return $E_ARGERR             # Код ошибки, обычно возвращаемый в таких случаях.
+  fi
+
+  if [ &quot;$1&quot; -ge 0 ]              # Если не отрицательное,
+  then                           #
+    absval=$1                    # оставить как есть.
+  else                           # Иначе,
+    let &quot;absval = (( 0 - $1 ))&quot;  # изменить знак.
+  fi
+
+  return $absval
+}
+
+
+tolower ()             #  Преобразование строк символов в нижний регистр
+{
+
+  if [ -z &quot;$1&quot; ]       #  Если нет входного аргумента,
+  then                 #+ выдать сообщение об ошибке
+    echo &quot;(null)&quot;
+    return             #+ и выйти из функции.
+  fi
+
+  echo &quot;$@&quot; | tr A-Z a-z
+  # Преобразовать все входные аргументы ($@).
+
+  return
+
+# Для записи результата работы функции в переменную, используйте операцию подстановки команды.
+# Например:
+#    oldvar=&quot;A seT of miXed-caSe LEtTerS&quot;
+#    newvar=`tolower &quot;$oldvar&quot;`
+#    echo &quot;$newvar&quot;    # a set of mixed-case letters
+#
+# Упражнение: Добавьте в эту библиотеку функцию перевода символов в верхний регистр.
+#           toupper()  [это довольно просто].
+}
+</pre>
+                <br>
+                <br>
+              </li>
+
+              <li>
+                <p>Для повышения ясности комментариев, выделяйте их
+                особым образом.</p>
+<pre
+ class="PROGRAMLISTING">
+## Внимание!
+rm -rf *.zzy   ##  Комбинация ключей &quot;-rf&quot;, в команде &quot;rm&quot;, чрезвычайно опасна,
+               ##+ особенно при удалении по шаблону.
+
+#+ Продолжение комментария на новой строке.
+#  Это первая строка комментария
+#+ это вторая строка комментария,
+#+ это последняя строка комментария.
+
+#* Обратите внимание.
+
+#o Элемент списка.
+
+#&gt; Альтернативный вариант.
+while [ &quot;$var1&quot; != &quot;end&quot; ]    #&gt; while test &quot;$var1&quot; != &quot;end&quot;
+</pre>
+                <br>
+                <br>
+              </li>
+
+              <li>
+                <p>Для создания блочных комментариев, можно
+                использовать конструкцию <a
+                 href="#TESTCONSTRUCTS1">if-test</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+COMMENT_BLOCK=
+#  Если попробовать инициализировать эту переменную чем нибудь,
+#+ то вы получите неожиданный результат.
+
+if [ $COMMENT_BLOCK ]; then
+
+Блок комментария --
+=================================
+Это строка комментария.
+Это другая строка комментария.
+Это еще одна строка комментария.
+=================================
+
+echo &quot;Эта строка не выводится.&quot;
+
+Этот блок комментария не вызывает сообщения об ошибке! Круто!
+
+fi
+
+echo &quot;Эта строка будет выведена на stdout.&quot;
+
+exit 0
+</pre>
+                <br>
+                <br>
+
+                <p>Сравните этот вариант создания блочных комментариев
+                со <a
+                 href="#CBLOCK1">встроенным документом, использующимся
+                для создания блочных комментариев</a>.</p>
+              </li>
+
+              <li>
+                <p>С помощью служебной переменной <a
+                 href="#XSTATVARREF">$?</a>, можно проверить --
+                является ли входной аргумент целым числом.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+SUCCESS=0
+E_BADINPUT=65
+
+test &quot;$1&quot; -ne 0 -o &quot;$1&quot; -eq 0 2&gt;/dev/null
+# Проверка: &quot;равно нулю или не равно нулю&quot;.
+# 2&gt;/dev/null подавление вывода сообщений об ошибках.
+
+if [ $? -ne &quot;$SUCCESS&quot; ]
+then
+  echo &quot;Порядок использования: `basename $0` целое_число&quot;
+  exit $E_BADINPUT
+fi
+
+let &quot;sum = $1 + 25&quot;             # Будет выдавать ошибку, если $1 не является целым числом.
+echo &quot;Sum = $sum&quot;
+
+# Любая переменная может быть проверена таким образом, а не только входные аргументы.
+
+exit 0
+</pre>
+                <br>
+                <br>
+              </li>
+
+              <li>
+                <p><a
+                 name="RVT"></a>Диапазон, возвращаемых функциями
+                значений, 0 - 255 -- серьезное ограничение. Иногда
+                может оказаться весьма проблематичным использование
+                глобальных переменных, для передачи результата из
+                функции. В таких случаях можно порекомендовать передачу
+                результатов работы функции через запись в <tt
+                 class="FILENAME">stdout</tt>.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="MULTIPLICATION"></a>
+
+                  <p><strong>Пример 33-10. Необычный способ передачи
+                  возвращаемого значения</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# multiplication.sh
+
+multiply ()                     # Функции выполняет перемножение всех переданых аргументов.
+{
+  local product=1
+
+  until [ -z &quot;$1&quot; ]             # Пока не дошли до последнего аргумента...
+  do
+    let &quot;product *= $1&quot;
+    shift
+  done
+
+  echo $product                 #  Значение не будет выведено на экран,
+}                               #+ поскольку оно будет записано в переменную.
+
+mult1=15383; mult2=25211
+val1=`multiply $mult1 $mult2`
+echo &quot;$mult1 X $mult2 = $val1&quot;
+                                # 387820813
+
+mult1=25; mult2=5; mult3=20
+val2=`multiply $mult1 $mult2 $mult3`
+echo &quot;$mult1 X $mult2 X $mult3 = $val2&quot;
+                                # 2500
+
+mult1=188; mult2=37; mult3=25; mult4=47
+val3=`multiply $mult1 $mult2 $mult3 $mult4`
+echo &quot;$mult1 X $mult2 X $mult3 X mult4 = $val3&quot;
+                                # 8173300
+
+exit 0
+</pre>
+                </div>
+
+                <p>Такой прием срабатывает и для строковых значений.
+                Таким образом, функция может <span
+                 class="QUOTE">&quot;возвращать&quot;</span> и
+                нечисловой результат.</p>
+<pre
+ class="PROGRAMLISTING">
+capitalize_ichar ()          #  Первый символ всех строковых аргументов
+{                            #+ переводится в верхний регистр.
+
+  string0=&quot;$@&quot;               # Принять все аргументы.
+
+  firstchar=${string0:0:1}   # Первый символ.
+  string1=${string0:1}       # Остаток строки.
+
+  FirstChar=`echo &quot;$firstchar&quot; | tr a-z A-Z`
+                             # Преобразовать в верхний регистр.
+
+  echo &quot;$FirstChar$string1&quot;  # Выдать на stdout.
+
+}
+
+newstring=`capitalize_ichar &quot;each sentence should start with a capital letter.&quot;`
+echo &quot;$newstring&quot;          # Each sentence should start with a capital letter.
+</pre>
+                <br>
+                <br>
+
+                <p>Используя этот прием, функция может <span
+                 class="QUOTE">&quot;возвращать&quot;</span> даже
+                несколько значений.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="SUMPRODUCT"></a>
+
+                  <p><strong>Пример 33-11. Необычный способ получения
+                  нескольких возвращаемых значений</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# sum-product.sh
+# Функция может &quot;возвращать&quot; несколько значений.
+
+sum_and_product ()   # Вычисляет сумму и произведение аргументов.
+{
+  echo $(( $1 + $2 )) $(( $1 * $2 ))
+# Вывод на stdout двух значений, разделенных пробелом.
+}
+
+echo
+echo &quot;Первое число: &quot;
+read first
+
+echo
+echo &quot;Второе число: &quot;
+read second
+echo
+
+retval=`sum_and_product $first $second`      # Получить результат.
+sum=`echo &quot;$retval&quot; | awk &#39;{print $1}&#39;`      # Первое значение (поле).
+product=`echo &quot;$retval&quot; | awk &#39;{print $2}&#39;`  # Второе значение (поле).
+
+echo &quot;$first + $second = $sum&quot;
+echo &quot;$first * $second = $product&quot;
+echo
+
+exit 0
+</pre>
+                </div>
+              </li>
+
+              <li>
+                <p>Следующая хитрость -- передача <a
+                 href="#ARRAYREF">массива</a> в <a
+                 href="#FUNCTIONREF">функцию</a>, и <span
+                 class="QUOTE">&quot;возврат&quot;</span> массива из
+                функции.</p>
+
+                <p>Передача массива в функцию выполняется посредством
+                записи элементов массива, разделенных пробелами, в
+                переменную, с помощью операции <a
+                 href="#COMMANDSUBREF">подстановки команды</a>.
+                Получить массив обратно можно, следуя вышеописанной
+                стратегии, через вывод на stdout, а затем, с помощью
+                все той же операции подстановки команды и оператора
+                <strong
+                 class="COMMAND">( ... )</strong> -- записать в
+                массив.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="ARRFUNC"></a>
+
+                  <p><strong>Пример 33-12. Передача массива в функцию и
+                  возврат массива из функции</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# array-function.sh: Передача массива в функцию и...
+#                   &quot;возврат&quot; массива из функции
+
+
+Pass_Array ()
+{
+  local passed_array   # Локальная переменная.
+  passed_array=( `echo &quot;$1&quot;` )
+  echo &quot;${passed_array[@]}&quot;
+  #  Список всех элементов в новом массиве,
+  #+ объявленном и инициализированном в функции.
+}
+
+
+original_array=( element1 element2 element3 element4 element5 )
+
+echo
+echo &quot;original_array = ${original_array[@]}&quot;
+#                      Список всех элементов исходного массива.
+
+
+# Так можно отдать массив в функцию.
+# **********************************
+argument=`echo ${original_array[@]}`
+# **********************************
+#  Поместив все элементы массива в переменную,
+#+ разделяя их пробелами.
+#
+# Обратите внимание: метод прямой передачи массива в функцию не сработает.
+
+
+# Так можно получить массив из функции.
+# *****************************************
+returned_array=( `Pass_Array &quot;$argument&quot;` )
+# *****************************************
+# Записать результат в переменную-массив.
+
+echo &quot;returned_array = ${returned_array[@]}&quot;
+
+echo &quot;=============================================================&quot;
+
+#  А теперь попробуйте получить доступ к локальному массиву
+#+ за пределами функции.
+Pass_Array &quot;$argument&quot;
+
+# Функция выведет массив, но...
+#+ доступ к локальному массиву, за пределами функции, окажется невозможен.
+echo &quot;Результирующий массив (внутри функции) = ${passed_array[@]}&quot;
+# &quot;ПУСТОЕ&quot; ЗНАЧЕНИЕ, поскольку это локальная переменная.
+
+echo
+
+exit 0
+</pre>
+                </div>
+
+                <p>Более сложный пример передачи массивов в функции, вы
+                найдете в <a
+                 href="#LIFESLOW">Пример A-11</a>.</p>
+              </li>
+
+              <li>
+                <p>Использование конструкций с двойными круглыми
+                скобками позволяет применять C-подобный синтаксис
+                операций присвоения и инкремента переменных, а также
+                оформления циклов <a
+                 href="#FORLOOPREF1">for</a> и <a
+                 href="#WHILELOOPREF">while</a>. См. <a
+                 href="#FORLOOPC">Пример 10-12</a> и <a
+                 href="#WHLOOPC">Пример 10-17</a>.</p>
+              </li>
+
+              <li>
+                <p>Иногда очень удобно &quot;пропускать&quot; данные
+                через один и тот же фильтр, но с разными параметрами,
+                используя конвейерную обработку. Особенно это относится
+                к <a
+                 href="#TRREF">tr</a> и <a
+                 href="#GREPREF">grep</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+# Из примера &quot;wstrings.sh&quot;.
+
+wlist=`strings &quot;$1&quot; | tr A-Z a-z | tr &#39;[:space:]&#39; Z | \
+tr -cs &#39;[:alpha:]&#39; Z | tr -s &#39;\173-\377&#39; Z | tr Z &#39; &#39;`
+</pre>
+                <br>
+                <br>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="AGRAM"></a>
+
+                  <p><strong>Пример 33-13. Игры с
+                  анаграммами</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# agram.sh: Игры с анаграммами.
+
+# Поиск анаграмм...
+LETTERSET=etaoinshrdlu
+
+anagram &quot;$LETTERSET&quot; | # Найти все анаграммы в наборе символов...
+grep &#39;.......&#39; |       # состоящие, как минимум из 7 символов,
+grep &#39;^is&#39; |           # начинающиеся с &#39;is&#39;
+grep -v &#39;s$&#39; |         # исключая множественное число
+grep -v &#39;ed$&#39;          # и глаголы в прошедшем времени
+
+#  Здесь используется утилита &quot;anagram&quot;
+#+ которая входит в состав пакета &quot;yawl&quot; , разработанного автором.
+#  http://ibiblio.org/pub/Linux/libs/yawl-0.2.tar.gz
+
+exit 0                 # Конец.
+
+bash$ sh agram.sh
+islander
+isolate
+isolead
+isotheral
+</pre>
+                </div>
+
+                <p>См. также <a
+                 href="#CONSTAT">Пример 27-2</a>, <a
+                 href="#CRYPTOQUOTE">Пример 12-18</a> и <a
+                 href="#SOUNDEX">Пример A-10</a>.</p>
+              </li>
+
+              <li>
+                <p>Для создания блочных комментариев можно использовать
+                <span
+                 class="QUOTE">&quot;<a
+                 href="#ANONHEREDOC0">анонимные встроенные
+                документы</a>&quot;</span>. См. <a
+                 href="#COMMENTBLOCK">Пример 17-10</a>.</p>
+              </li>
+
+              <li>
+                <p>Попытка вызова утилиты из сценария на машине, где
+                эта утилита отсутствует, потенциально опасна. Для
+                обхода подобных проблем можно воспользоваться утилитой
+                <a
+                 href="#WHATISREF">whatis</a>.</p>
+<pre
+ class="PROGRAMLISTING">
+CMD=command1                 # Основной вариант.
+PlanB=command2               # Запасной вариант.
+
+command_test=$(whatis &quot;$CMD&quot; | grep &#39;nothing appropriate&#39;)
+#  Если &#39;command1&#39; не найдена в системе, то &#39;whatis&#39; вернет
+#+ &quot;command1: nothing appropriate.&quot;
+#==&gt; От переводчика: Будьте внимательны! Если у вас локализованная версия whatis
+#==&gt; то вывод от нее может отличаться от используемого здесь (&#39;nothing appropriate&#39;)
+
+
+if [[ -z &quot;$command_test&quot; ]]  # Проверка наличия утилиты в системе.
+then
+  $CMD option1 option2       #  Запуск команды с параметрами.
+else                         #  Иначе,
+  $PlanB                     #+ запустить command2 (запасной вариант).
+fi
+</pre>
+                <br>
+                <br>
+              </li>
+
+              <li>
+                <p>Команда <a
+                 href="#RUNPARTSREF">run-parts</a> удобна для запуска
+                нескольких сценариев, особенно в комбинации с <a
+                 href="#CRONREF">cron</a> или <a
+                 href="#ATREF">at</a>.</p>
+              </li>
+
+              <li>
+                <p>Было бы неплохо снабдить сценарий графическим
+                интерфейстом X-Window. Для этого можно порекомендовать
+                пакеты <span
+                 class="emphasis"><em
+                 class="EMPHASIS">Xscript</em></span>, <span
+                 class="emphasis"><em
+                 class="EMPHASIS">Xmenu</em></span> и <span
+                 class="emphasis"><em
+                 class="EMPHASIS">widtools</em></span>. Правда, первые
+                два, кажется больше не поддерживаются разработчиками.
+                Зато <span
+                 class="emphasis"><em
+                 class="EMPHASIS">widtools</em></span> можно получить
+                <a
+                 href=
+                "http://www.batse.msfc.nasa.gov/~mallozzi/home/software/xforms/src/widtools-2.0.tgz"
+                 target="_top">здесь</a>.</p>
+
+                <div
+                 class="CAUTION">
+                  <table
+                   class="CAUTION"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/caution.gif"
+                       hspace="5"
+                       alt="Caution"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Пакет <span
+                         class="emphasis"><em
+                         class="EMPHASIS">widtools</em></span> (widget
+                        tools) требует наличия библиотеки <span
+                         class="emphasis"><em
+                         class="EMPHASIS">XForms</em></span>. Кроме
+                        того, необходимо слегка подправить <a
+                         href="#MAKEFILEREF">Makefile</a>, чтобы этот
+                        пакет можно было собрать на типичной
+                        Linux-системе. Но хуже всего то, что три из
+                        шести виджетов не работают :-(( (segfault).</p>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <p>Для постороения приложений с графическим
+                интерфейсом, можно попробовать <span
+                 class="emphasis"><em
+                 class="EMPHASIS">Tk</em></span>, или <span
+                 class="emphasis"><em
+                 class="EMPHASIS">wish</em></span> (надстройка над
+                <span
+                 class="emphasis"><em
+                 class="EMPHASIS">Tcl</em></span>), <span
+                 class="emphasis"><em
+                 class="EMPHASIS">PerlTk</em></span> (Perl с поддержкой
+                Tk), <span
+                 class="emphasis"><em
+                 class="EMPHASIS">tksh</em></span> (ksh с поддержкой
+                Tk), <span
+                 class="emphasis"><em
+                 class="EMPHASIS">XForms4Perl</em></span> (Perl с
+                поддержкой XForms), <span
+                 class="emphasis"><em
+                 class="EMPHASIS">Gtk-Perl</em></span> (Perl с
+                поддержкой Gtk) или <span
+                 class="emphasis"><em
+                 class="EMPHASIS">PyQt</em></span> (Python с поддержкой
+                Qt).</p>
+              </li>
+            </ul>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="SECURITYISSUES"></a>33.8. Проблемы безопасности</h2>
+
+            <p>Уместным будет лишний раз предупредить о соблюдении мер
+            предосторожности при работе с незнакомыми сценариями.
+            Сценарий может содержать <span
+             class="emphasis"><em
+             class="EMPHASIS">червя</em></span>, <span
+             class="emphasis"><em
+             class="EMPHASIS">трояна</em></span> или даже <span
+             class="emphasis"><em
+             class="EMPHASIS">вирус</em></span>. Если вы получили
+            сценарий не из источника, которому доверяете, то никогда не
+            запускайте его с привилегиями root и не позволяйте
+            вставлять его в список сценариев начальной инициализации
+            системы в <tt
+             class="FILENAME">/etc/rc.d</tt>, пока не убедитесь в том,
+            что он безвреден для системы.</p>
+
+            <p>Исследователи из Bell Labs и других организаций, включая
+            M. Douglas McIlroy, Tom Duff, и Fred Cohen исследовали
+            вопрос о возможности создания вирусов на языке сценариев
+            командной оболочки, и пришли к выводу, что это делается
+            очень легко и доступно даже для новичков. <a
+             name="AEN13892"
+             href="#FTN.AEN13892"><span
+             class="footnote">[63]</span></a></p>
+
+            <p>Это еще одна из причин, по которым следует изучать язык
+            командной оболочки. Способность читать и понимать сценарии
+            поможет вам предотвратить возможность взлома и/или
+            разрушения вашей системы.</p>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="PORTABILITYISSUES"></a>33.9. Проблемы
+            переносимости</h2>
+
+            <p>Эта книга делает упор на создании сценариев для
+            командной оболочки Bash, для операционной системы
+            GNU/Linux. Тем не менее, многие рекомендации, приводимые
+            здесь, могут быть вполне применимы и для других командных
+            оболочек, таких как <strong
+             class="COMMAND">sh</strong> и <strong
+             class="COMMAND">ksh</strong>.</p>
+
+            <p>Многие версии командных оболочек стремятся следовать
+            стандарту POSIX 1003.2. Вызывая Bash с ключом <tt
+             class="OPTION">--posix</tt>, или вставляя <strong
+             class="COMMAND">set -o posix</strong> в начало сценария,
+            вы можете заставить Bash очень близко следовать этому
+            стандарту. Но, даже без этого ключа, большинство сценариев,
+            написанных для Bash, будут работать под управлением <strong
+             class="COMMAND">ksh</strong>, и наоборот, т.к. Chet Ramey
+            перенес многие особенности, присущие <strong
+             class="COMMAND">ksh</strong>, в последние версии Bash.</p>
+
+            <p>В коммерческих версиях UNIX, сценарии, использующие
+            GNU-версии стандартных утилит и команд, могут оказаться
+            неработоспособными. Однако, с течением времени, таких
+            проблем остается все меньше и меньше, поскольку утилиты
+            GNU, в большинстве своем, заместили свои проприетарные
+            аналоги в UNIX. После того, как <a
+             href=
+            "http://linux.oreillynet.com/pub/a/linux/2002/02/28/caldera.html"
+             target="_top">Caldera дала разрешение на публикацию
+            исходного кода</a> некоторых версий оригинальных утилит
+            UNIX, этот процесс значительно ускорился.</p>
+
+            <p>Bash имеет некоторые особенности, недоступные в
+            традиционном Bourne shell. Среди них:</p>
+
+            <ul>
+              <li>
+                <p>Некоторые дополнительные <a
+                 href="#INVOCATIONOPTIONSREF">ключи вызова</a></p>
+              </li>
+
+              <li>
+                <p><a
+                 href="#COMMANDSUBREF">Подстановка команд</a>, с
+                использованием нотации <strong
+                 class="COMMAND">$( )</strong></p>
+              </li>
+
+              <li>
+                <p>Некоторые <a
+                 href="#STRINGMANIP">операции над строками</a></p>
+              </li>
+
+              <li>
+                <p><a
+                 href="#PROCESSSUBREF">Подстановка процессов</a></p>
+              </li>
+
+              <li>
+                <p><a
+                 href="#BUILTINREF">встроенные команды</a> Bash</p>
+              </li>
+            </ul>
+            <br>
+            <br>
+
+            <p>Более подробный список характерных особенностей Bash, вы
+            найдете в <a
+             href="ftp://ftp.cwru.edu/pub/bash/FAQ"
+             target="_top">Bash F.A.Q.</a>.</p>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="WINSCRIPT"></a>33.10. Сценарии командной оболочки
+            под Windows</h2>
+
+            <p>Даже те пользователи, которые работают в <span
+             class="emphasis"><em
+             class="EMPHASIS">другой</em></span>, не UNIX-подобной
+            операционной системе, смогут запускать сценарии командной
+            оболочки, а потому -- найти для себя много полезного в этой
+            книге. Пакеты <a
+             href="http://sourceware.cygnus.com/cygwin/"
+             target="_top">Cygwin</a> от Cygnus, и <a
+             href="http://www.mkssoftware.com/"
+             target="_top">MKS utilities</a> от Mortice Kern
+            Associates, позволяют дополнить Windows возможностями
+            командной оболочки.</p>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="BASH2"></a>Глава 34. Bash, версия 2</h1>
+
+          <p><a
+           name="BASH2REF"></a></p>
+
+          <p>Текущая версия <span
+           class="emphasis"><em
+           class="EMPHASIS">Bash</em></span>, та, которая скорее всего
+          установлена в вашей системе, фактически -- 2.XX.Y.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>echo $BASH_VERSION</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">2.05.8(1)-release</tt>
+             
+</pre>
+          В этой версии классического языка сценариев Bash были
+          добавлены переменные-массивы, <a
+           name="AEN13946"
+           href="#FTN.AEN13946"><span
+           class="footnote">[64]</span></a> расширение строк и
+          подстановка параметров, улучшен метод косвенных ссылок на
+          переменные.<br>
+          <br>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="EX77"></a>
+
+            <p><strong>Пример 34-1. Расширение строк</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# &quot;Расширение&quot; строк (String expansion).
+# Введено в Bash, начиная с версии 2.
+
+# Строки вида  $&#39;xxx&#39;
+# могут содержать дополнительные экранированные символы.
+
+echo $&#39;Звонок звенит 3 раза \a \a \a&#39;
+echo $&#39;Три перевода формата \f \f \f&#39;
+echo $&#39;10 новых строк \n\n\n\n\n\n\n\n\n\n&#39;
+
+exit 0
+</pre>
+          </div>
+
+          <p><a
+           name="VARREFNEW"></a></p>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="EX78"></a>
+
+            <p><strong>Пример 34-2. Косвенные ссылки на переменные --
+            новый метод</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Косвенные ссылки на переменные.
+
+
+a=letter_of_alphabet
+letter_of_alphabet=z
+
+echo &quot;a = $a&quot;           # Прямая ссылка.
+
+echo &quot;Now a = ${!a}&quot;    # Косвенная ссылка.
+# Форма записи ${!variable} намного удобнее старой &quot;eval var1=\$$var2&quot;
+
+echo
+
+t=table_cell_3
+table_cell_3=24
+echo &quot;t = ${!t}&quot;        # t = 24
+table_cell_3=387
+echo &quot;Значение переменной t изменилось на ${!t}&quot;    # 387
+
+# Теперь их можно использовать для ссылок на элементы массива,
+# или для эмуляции многомерных массивов.
+# Было бы здорово, если бы косвенные ссылки допускали индексацию.
+
+exit 0
+</pre>
+          </div>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="RESISTOR"></a>
+
+            <p><strong>Пример 34-3. Простая база данных, с применением
+            косвенных ссылок</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# resistor-inventory.sh
+# Простая база данных, с применением косвенных ссылок.
+
+# ============================================================== #
+# Данные
+
+B1723_value=470                                   # сопротивление (Ом)
+B1723_powerdissip=.25                             # рассеиваемая мощность (Вт)
+B1723_colorcode=&quot;желтый-фиолетовый-коричневый&quot;    # цветовая маркировка
+B1723_loc=173                                     # где
+B1723_inventory=78                                # количество (шт)
+
+B1724_value=1000
+B1724_powerdissip=.25
+B1724_colorcode=&quot;коричневый-черный-красный&quot;
+B1724_loc=24N
+B1724_inventory=243
+
+B1725_value=10000
+B1725_powerdissip=.25
+B1725_colorcode=&quot;коричневый-черный-оранжевый&quot;
+B1725_loc=24N
+B1725_inventory=89
+
+# ============================================================== #
+
+
+echo
+
+PS3=&#39;Введите ноиер: &#39;
+
+echo
+
+select catalog_number in &quot;B1723&quot; &quot;B1724&quot; &quot;B1725&quot;
+do
+  Inv=${catalog_number}_inventory
+  Val=${catalog_number}_value
+  Pdissip=${catalog_number}_powerdissip
+  Loc=${catalog_number}_loc
+  Ccode=${catalog_number}_colorcode
+
+  echo
+  echo &quot;Номер по каталогу $catalog_number:&quot;
+  echo &quot;Имеется в наличии ${!Inv} шт. [${!Val} Ом / ${!Pdissip} Вт].&quot;
+  echo &quot;Находятся в лотке # ${!Loc}.&quot;
+  echo &quot;Цветовая маркировка: \&quot;${!Ccode}\&quot;.&quot;
+
+  break
+done
+
+echo; echo
+
+# Упражнение:
+# ----------
+# Переделайте этот сценарий так, чтобы он использовал массивы вместо косвенных ссылок.
+# Какой из вариантов более простой и интуитивный?
+
+
+# Примечание:
+# ----------
+#  Язык командной оболочки не очень удобен для написания приложений,
+#+ работающих с базами данных.
+#  Для этой цели лучше использовать языки программирования, имеющие
+#+ развитые средства для работы со структурами данных,
+#+ такие как C++ или Java (может быть Perl).
+
+exit 0
+</pre>
+          </div>
+
+          <div
+           class="EXAMPLE">
+            <a
+             name="EX79"></a>
+
+            <p><strong>Пример 34-4. Массивы и другие хитрости для
+            раздачи колоды карт в четыре руки</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# На старых системах может потребоваться вставить #!/bin/bash2.
+
+# Карты:
+# раздача в четыре руки.
+
+UNPICKED=0
+PICKED=1
+
+DUPE_CARD=99
+
+LOWER_LIMIT=0
+UPPER_LIMIT=51
+CARDS_IN_SUIT=13
+CARDS=52
+
+declare -a Deck
+declare -a Suits
+declare -a Cards
+# Проще и понятнее было бы, имей мы дело
+# с одним 3-мерным массивом.
+# Будем надеяться, что в будущем, поддержка многомерных массивов будет введена в Bash.
+
+
+initialize_Deck ()
+{
+i=$LOWER_LIMIT
+until [ &quot;$i&quot; -gt $UPPER_LIMIT ]
+do
+  Deck[i]=$UNPICKED   # Пометить все карты в колоде &quot;Deck&quot;, как &quot;невыданная&quot;.
+  let &quot;i += 1&quot;
+done
+echo
+}
+
+initialize_Suits ()
+{
+Suits[0]=Т # Трефы
+Suits[1]=Б # Бубны
+Suits[2]=Ч # Червы
+Suits[3]=П # Пики
+}
+
+initialize_Cards ()
+{
+Cards=(2 3 4 5 6 7 8 9 10 В Д K Т)
+# Альтернативный способ инициализации массива.
+}
+
+pick_a_card ()
+{
+card_number=$RANDOM
+let &quot;card_number %= $CARDS&quot;
+if [ &quot;${Deck[card_number]}&quot; -eq $UNPICKED ]
+then
+  Deck[card_number]=$PICKED
+  return $card_number
+else
+  return $DUPE_CARD
+fi
+}
+
+parse_card ()
+{
+number=$1
+let &quot;suit_number = number / CARDS_IN_SUIT&quot;
+suit=${Suits[suit_number]}
+echo -n &quot;$suit-&quot;
+let &quot;card_no = number % CARDS_IN_SUIT&quot;
+Card=${Cards[card_no]}
+printf %-4s $Card
+# Вывод по столбцам.
+}
+
+seed_random ()  # Переустановка генератора случайных чисел.
+{
+seed=`eval date +%s`
+let &quot;seed %= 32766&quot;
+RANDOM=$seed
+}
+
+deal_cards ()
+{
+echo
+
+cards_picked=0
+while [ &quot;$cards_picked&quot; -le $UPPER_LIMIT ]
+do
+  pick_a_card
+  t=$?
+
+  if [ &quot;$t&quot; -ne $DUPE_CARD ]
+  then
+    parse_card $t
+
+    u=$cards_picked+1
+    # Возврат к индексации с 1 (временно).
+    let &quot;u %= $CARDS_IN_SUIT&quot;
+    if [ &quot;$u&quot; -eq 0 ]   # вложенный if/then.
+    then
+     echo
+     echo
+    fi
+    # Смена руки.
+
+    let &quot;cards_picked += 1&quot;
+  fi
+done
+
+echo
+
+return 0
+}
+
+
+# Структурное программирование:
+# вся логика приложения построена на вызове функций.
+
+#================
+seed_random
+initialize_Deck
+initialize_Suits
+initialize_Cards
+deal_cards
+
+exit 0
+#================
+
+
+
+# Упражнение 1:
+# Добавьте комментарии, чтобы до конца задокументировать этот сценарий.
+
+# Упражнение 2:
+# Исправьте сценарий так, чтобы карты в каждой руке выводились отсортированными по масти.
+# Вы можете добавить и другие улучшения.
+
+# Упражнение 3:
+# Упростите логику сценария.
+</pre>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="CHAPTER">
+        <hr>
+
+        <h1><a
+         name="ENDNOTES"></a>Глава 35. Замечания и дополнения</h1>
+
+        <div
+         class="SECT1">
+          <h2
+           class="SECT1"><a
+           name="AUTHORSNOTE"></a>35.1. От автора</h2>
+
+          <p>Как я пришел к мысли о написании этой книги? Это необычная
+          история. Случилось это лет несколько тому назад. Мне
+          потребовалось изучить язык командной оболочки -- а что может
+          быть лучше, как не чтение хорошей книги!? Я надеялся купить
+          учебник и справочник, которые охватывали бы в полной мере
+          данную тематику. Я искал книгу, которая возьмет трудные
+          понятия, вывернет их наизнанку и подробно разжует на хорошо
+          откомментированных примерах. В общем, я искал очень хорошую
+          книгу. К сожалению, в природе таковой не существовало,
+          поэтому я счел необходимым написать ее.</p>
+
+          <p>Это напоминает мне сказку о сумасшедшем профессоре.
+          Помешанный, до безумия, при виде книги, любой книги -- в
+          библиотеке, в книжном магазине -- не важно где, им овладевала
+          уверенность в том, что и он мог бы написать эту книгу, причем
+          сделать это гораздо лучше. Он стремительно мчался домой и
+          садился за создание своей собственной книги с тем же
+          названием. Когда он умер, в его доме нашли несколько тысяч,
+          написанных им книг, этого количества хватило бы, чтобы
+          посрамить самого Айзека Азимова. Книги, может быть и не были
+          так хороши -- кто знает, но разве это имеет какое-то
+          значение? Вот -- человек, жил своими грезами, пусть одержимый
+          и движимый ими, но я не могу удержаться от восхищения старым
+          чудаком...</p>
+        </div>
+
+        <div
+         class="SECT1">
+          <hr>
+
+          <h2
+           class="SECT1"><a
+           name="ABOUTAUTHOR"></a>35.2. Об авторе</h2>
+
+          <p>Автор не стремится ни к званиям, ни к наградам, им движет
+          неодолимое желание писать. <a
+           name="AEN13971"
+           href="#FTN.AEN13971"><span
+           class="footnote">[65]</span></a> Эта книга -- своего рода
+          отдых от основной работы, <a
+           href="http://personal.riverusers.com/~thegrendel/hmw50.zip"
+           target="_top">HOW-2 Meet Women: The Shy Man&#39;s Guide to
+          Relationships</a> (Руководство Застенчивого Мужчины о том Как
+          Познакомиться С Женщиной) . Он также написал <a
+           href="http://tldp.org/HOWTO/Software-Building-HOWTO.html"
+           target="_top">Software-Building HOWTO</a>.</p>
+
+          <p>Пользуется Linux с 1995 года (Slackware 2.2, kernel
+          1.2.1). Выпустил несколько программ, среди которых <a
+           href=
+          "http://ibiblio.org/pub/Linux/utils/file/cruft-0.2.tar.gz"
+           target="_top">cruft</a> -- утилита шифрования, заменявшая
+          стандартную UNIX-овую crypt, <a
+           href=
+          "http://ibiblio.org/pub/Linux/apps/financial/mcalc-1.6.tar.gz"
+           target="_top">mcalc</a> -- финансовый калькулятор, для
+          выполнения расчетов по займам, <a
+           href=
+          "http://ibiblio.org/pub/Linux/games/amusements/judge-1.0.tar.gz"
+           target="_top">judge</a> и <a
+           href="http://ibiblio.org/pub/Linux/libs/yawl-0.2.tar.gz"
+           target="_top">yawl</a> -- пакет игр со словами.
+          Программировать начинал с языка FORTRAN IV на CDC 3800, но не
+          испытывает ностальгии по тем дням.</p>
+
+          <p>Живет в глухой, заброшенной деревушке со своей женой и
+          собакой.</p>
+        </div>
+
+        <div
+         class="SECT1">
+          <hr>
+
+          <h2
+           class="SECT1"><a
+           name="TOOLSUSED"></a>35.3. Инструменты, использовавшиеся при
+          создании книги</h2>
+
+          <div
+           class="SECT2">
+            <h3
+             class="SECT2"><a
+             name="SOFTWARE-HARDWARE"></a>35.3.1. Аппаратура</h3>
+
+            <p>IBM Thinkpad, model 760XL laptop (P166, 104 Mb RAM) под
+            управлением Red Hat 7.1/7.3. Несомненно, это довольно
+            медлительный агрегат, но он имеет отличную клавиатуру, и
+            это много лучше, чем пара карандашей и письменный стол.</p>
+          </div>
+
+          <div
+           class="SECT2">
+            <hr>
+
+            <h3
+             class="SECT2"><a
+             name="SOFTWARE-PRINTWARE"></a>35.3.2. Программное
+            обеспечение</h3>
+
+            <ol
+             type="i">
+              <li>
+                <p>Мощный текстовый редактор <a
+                 href="http://www.vim.org"
+                 target="_top">vim</a> (автор: Bram Moolenaar) .</p>
+              </li>
+
+              <li>
+                <p><a
+                 href="http://www.netfolder.com/DSSSL/"
+                 target="_top">OpenJade</a> -- инструмент, выполняющий,
+                на основе DSSSL, верификацию и преобразование
+                SGML-документов в другие форматы.</p>
+              </li>
+
+              <li>
+                <p><a
+                 href="http://nwalsh.com/docbook/dsssl/"
+                 target="_top">Таблицы стилей DSSSL от Norman
+                Walsh</a>.</p>
+              </li>
+
+              <li>
+                <p><span
+                 class="emphasis"><em
+                 class="EMPHASIS">DocBook, The Definitive
+                Guide</em></span> (Norman Walsh, Leonard Muellner
+                O&#39;Reilly, ISBN 1-56592-580-7). Полное руководство
+                по созданию документов в формате Docbook SGML.</p>
+              </li>
+            </ol>
+          </div>
+        </div>
+
+        <div
+         class="SECT1">
+          <hr>
+
+          <h2
+           class="SECT1"><a
+           name="CREDITS"></a>35.4. Благодарности</h2>
+
+          <p>Без участия сообщества этот проект был бы невозможен.
+          Автор признает, что без посторонней помощи, написание этой
+          книги стало бы невыполнимой задачей и благодарит всех, кто
+          оказал посильную помощь.</p>
+
+          <p><a
+           href="mailto:feloy@free.fr"
+           target="_top">Philippe Martin</a> -- перевел этот документ в
+          формат DocBook/SGML. Работает в маленькой французской
+          компании, в качестве разработчика программного обеспечения. В
+          свободное от работы время -- любит работать над документацией
+          или программным обеспечением для GNU/Linux, читать книги,
+          слушать музыку и веселиться с друзьями. Вы можете столкнуться
+          с ним, где-нибудь во Франции, в провинции Басков, или
+          написать ему письмо на <a
+           href="mailto:feloy@free.fr"
+           target="_top">feloy@free.fr</a>.</p>
+
+          <p>Philippe Martin также отметил, что возможно использование
+          позиционных параметров за $9, при использовании {фигурных
+          скобок}, см. <a
+           href="#EX17">Пример 4-5</a>.</p>
+
+          <p><a
+           href="mailto:stephane_chazelas@yahoo.fr"
+           target="_top">Stephane Chazelas</a> -- выполнил титаническую
+          работу по корректировке, дополнению и написанию примеров
+          сценариев. Фактически, он взвалил на свои плечи обязанности
+          <strong
+           class="COMMAND">редактора</strong> этого документа. Огромное
+          спасибо!</p>
+
+          <p>Особенно я хотел бы поблагодарить <span
+           class="emphasis"><em
+           class="EMPHASIS">Patrick Callahan</em></span>, <span
+           class="emphasis"><em
+           class="EMPHASIS">Mike Novak</em></span> и <span
+           class="emphasis"><em
+           class="EMPHASIS">Pal Domokos</em></span> за исправление
+          ошибок и неточностей, за разъяснения и дополнения. Их живое
+          обсуждение проблем, связанных с созданием сценариев на языке
+          командной оболочки вдохновило меня на попытку сделать этот
+          документ более удобочитаемым.</p>
+
+          <p>Я благодарен Jim Van Zandt за выявленные им ошибки и
+          упущения, в версии 0.2 этого документа, и за поучительный
+          пример сценария.</p>
+
+          <p>Большое спасибо <a
+           href="mailto:mikaku@fiwix.org"
+           target="_top">Jordi Sanfeliu</a> за то, что он дал
+          возможность использовать его прекрасный сценарий в этой книге
+          (<a
+           href="#TREE">Пример A-19</a>).</p>
+
+          <p>Выражаю свою благодарность <a
+           href="mailto:charpov@cs.unh.edu"
+           target="_top">Michel Charpentier</a> за разрешение
+          использовать его <a
+           href="#DCREF">dc</a> сценарий разложения на простые
+          множители (<a
+           href="#FACTR">Пример 12-37</a>).</p>
+
+          <p>Спасибо <a
+           href="mailto:friedman@prep.ai.mit.edu"
+           target="_top">Noah Friedman</a>, предоставившему право
+          использовать его сценарий (<a
+           href="#STRING">Пример A-20</a>).</p>
+
+          <p><a
+           href="mailto:emmanuel.rouat@wanadoo.fr"
+           target="_top">Emmanuel Rouat</a> предложил несколько
+          изменений и дополнений в разделах, посвященных <a
+           href="#COMMANDSUBREF">подстановке команд</a> и <a
+           href="#ALIASREF">псевдонимам</a>. Он так же предоставил
+          замечательный пример файла <tt
+           class="FILENAME">.bashrc</tt> (<a
+           href="#SAMPLE-BASHRC">Приложение G</a>).</p>
+
+          <p><a
+           href="mailto:heiner.steven@odn.de"
+           target="_top">Heiner Steven</a> любезно разрешил
+          опубликовать его сценарий <a
+           href="#BASE">Пример 12-33</a>. Он сделал множество
+          исправлений и внес большое количество предложений. Особое
+          спасибо!</p>
+
+          <p>Rick Boivie предоставил отличный сценарий, демонстрирующий
+          рекурсию, <span
+           class="emphasis"><em
+           class="EMPHASIS">pb.sh</em></span> (<a
+           href="#PBOOK">Пример 33-7</a>) и внес предложения по
+          повышению производительности сценария <span
+           class="emphasis"><em
+           class="EMPHASIS">monthlypmt.sh</em></span> (<a
+           href="#MONTHLYPMT">Пример 12-32</a>).</p>
+
+          <p>Florian Wisser оказывал содействие при написании разделов,
+          посвященных строкам (см. <a
+           href="#STRTEST">Пример 7-6</a>).</p>
+
+          <p>Oleg Philon передал свои предложения относительно команд
+          <a
+           href="#CUTREF">cut</a> и <a
+           href="#PIDOFREF">pidof</a>.</p>
+
+          <p>Michael Zick расширил пример с <a
+           href="#EMPTYARRAY">пустыми массивами</a>, введя туда
+          демонстрацию необычных свойств массивов. Он также предоставил
+          ряд других примеров.</p>
+
+          <p>Marc-Jano Knopp выполнил исправления в разделе,
+          посвященном пакетным файлам DOS.</p>
+
+          <p>Hyun Jin Cha, в процессе работы над корейским переводом,
+          обнаружил несколько опечаток в документе. Спасибо ему за
+          это!</p>
+
+          <p>Andreas Abraham передал большое число типографских ошибок
+          и внес ряд исправлений. Особое спасибо!</p>
+
+          <p>Кроме того, я хотел бы выразить свою признательность Gabor
+          Kiss, Leopold Toetsch, Peter Tillier, Marcus Berglof, Tony
+          Richardson, Nick Drage, Rich Bartell, Jess Thrysoee, Adam
+          Lazur, Bram Moolenaar, Baris Cicek, Greg Keraunen, Keith
+          Matthews, Sandro Magi, Albert Reiner, Dim Segebart, Rory
+          Winston, Lee Bigelow, Wayne Pollock, <span
+           class="QUOTE">&quot;jipe&quot;</span>, Emilio Conti, Dennis
+          Leeuw, Dan Jacobson и David Lawyer (автор 4-х HOWTO).</p>
+
+          <p>Мои благодарности <a
+           href="mailto:chet@po.cwru.edu"
+           target="_top">Chet Ramey</a> и Brian Fox за создание <strong
+           class="COMMAND">Bash</strong> -- этого элегантного и мощного
+          инструмента!</p>
+
+          <p>Особое спасибо добровольцам из <a
+           href="http://www.tldp.org"
+           target="_top">Linux Documentation Project</a>. Проект LDP
+          сделал возможным публикацию этой книги в своем архиве.</p>
+
+          <p>Больше всего я хотел бы выразить свою благодарность моей
+          супруге, Anita, за ее эмоциональную поддержку.</p>
+        </div>
+      </div>
+      <a
+       name="BIBLIO"></a>
+      <hr>
+
+      <h1><a
+       name="BIBLIO"></a>Литература</h1>
+      <a
+       name="BIBLIOREF"></a>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14061"></a>
+
+        <p><span
+         class="EDITOR">Edited by Peter Denning</span>, <em>Computers
+        Under Attack: Intruders, Worms, and Viruses</em>, ACM Press,
+        1990, 0-201-53067-8.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Содержит несколько статей о вирусах, написаных на языке
+            командной оболочки.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14075"></a>
+
+        <p><span
+         class="AUTHOR">Dale Dougherty</span> <span
+         class="AUTHOR">and Arnold Robbins</span>, <em>Sed and
+        Awk</em>, 2nd edition, O&#39;Reilly and Associates, 1997,
+        1-156592-225-5.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Чтобы раскрыть всю мощь командной оболочки, вам
+            наверняка потребуется знакомство с <strong
+             class="COMMAND">sed</strong> и <strong
+             class="COMMAND">awk</strong>. Это обычный учебник. Здесь
+            вы найдете превосходное введение в <span
+             class="QUOTE">&quot;регулярные выражения&quot;</span>.
+            Обязательно прочитайте эту книгу.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14096"></a>
+
+        <p><span
+         class="AUTHOR">Aeleen Frisch</span>, <em>Essential System
+        Administration</em>, 3rd edition, O&#39;Reilly and Associates,
+        2002, 0-596-00343-9.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Это замечательное руководство для системных
+            администраторов. Может служить неплохим введением в
+            программирование сценариев. Содержит подробные пояснения к
+            сценариям загрузки и инициализации системы.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14111"></a>
+
+        <p><span
+         class="AUTHOR">Stephen Kochan</span> <span
+         class="AUTHOR">and Patrick Woods</span>, <em>Unix Shell
+        Programming</em>, Hayden, 1990, 067248448X.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Стандартный справочник, хотя немного устаревший.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14128"></a>
+
+        <p><span
+         class="AUTHOR">Neil Matthew</span> <span
+         class="AUTHOR">and Richard Stones</span>, <em>Beginning Linux
+        Programming</em>, Wrox Press, 1996, 1874416680.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Дает хороший, глубокий охват различных языков
+            программирования, доступных в Linux, включая довольно
+            сильную главу по программированию в командной оболочке.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="MAYERREF"></a>
+
+        <p><span
+         class="AUTHOR">Herbert Mayer</span>, <em>Advanced C
+        Programming on the IBM PC</em>, Windcrest Books, 1989,
+        0830693637.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Замечательная книга по алгоритмам и практическому
+            программированию.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14159"></a>
+
+        <p><span
+         class="AUTHOR">David Medinets</span>, <em>Unix Shell
+        Programming Tools</em>, McGraw-Hill, 1999, 0070397333.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Отличная книга по программированию в командной оболочке,
+            с примерами, и кратким введением в Tcl и Perl.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14173"></a>
+
+        <p><span
+         class="AUTHOR">Cameron Newham</span> <span
+         class="AUTHOR">and Bill Rosenblatt</span>, <em>Learning the
+        Bash Shell</em>, 2nd edition, O&#39;Reilly and Associates,
+        1998, 1-56592-347-2.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Это отважная попытка создать учебник для начинающих, но
+            он получился несколько несовершенным, к тому же не
+            изобилует примерами сценариев.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14191"></a>
+
+        <p><span
+         class="AUTHOR">Anatole Olczak</span>, <em>Bourne Shell Quick
+        Reference Guide</em>, ASP, Inc., 1991, 093573922X.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Очень удобный карманный справочник, несмотря на
+            недостатки, при охвате специфичных свойств Bash.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14205"></a>
+
+        <p><span
+         class="AUTHOR">Jerry Peek,</span> <span
+         class="AUTHOR">Tim O&#39;Reilly,</span> <span
+         class="AUTHOR">and Mike Loukides</span>, <em>Unix Power
+        Tools</em>, 2nd edition, O&#39;Reilly and Associates, Random
+        House, 1997, 1-56592-260-3.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Содержит ряд очень информативных разделов, посвященных
+            программированию в командной оболочке, но не может
+            рассматриваться как учебное пособие.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14228"></a>
+
+        <p><span
+         class="AUTHOR">Clifford Pickover</span>, <em>Computers,
+        Pattern, Chaos, and Beauty</em>, St. Martin&#39;s Press, 1990,
+        0-312-04123-3.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Сокровищница идей и рецептов по машинным
+            вычислениям.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14242"></a>
+
+        <p><span
+         class="AUTHOR">George Polya</span>, <em>How To Solve It</em>,
+        Princeton University Press, 1973, 0-691-02356-5.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Классический учебник по методам решения задач.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14256"></a>
+
+        <p><span
+         class="AUTHOR">Arnold Robbins</span>, <em>Bash Reference
+        Card</em>, SSC, 1998, 1-58731-010-5.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Замечательный карманный справочник по Bash. Стоит всего
+            $4.95, но также доступен для свободного скачивания <a
+             href="http://www.ssc.com/ssc/bash/"
+             target="_top">on-line</a> в формате PDF.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14271"></a>
+
+        <p><span
+         class="AUTHOR">Arnold Robbins</span>, <em>Effective Awk
+        Programming</em>, Free Software Foundation / O&#39;Reilly and
+        Associates, 2000, 1-882114-26-4.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Самое лучшее учебное руководство и справочник по <strong
+             class="COMMAND">awk</strong>. Свободная электронная версия
+            книги включена в состав документации к <strong
+             class="COMMAND">awk</strong>. Печатное издание последней
+            версии доступно на сайте O&#39;Reilly and Associates.</p>
+
+            <p>Эта книга служила источником вдохновения для автора этой
+            книги.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14288"></a>
+
+        <p><span
+         class="AUTHOR">Bill Rosenblatt</span>, <em>Learning the Korn
+        Shell</em>, O&#39;Reilly and Associates, 1993,
+        1-56592-054-6.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Эта, хорошо написанная книга, содержит массу указаний по
+            созданию сценариев командной оболочки.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14302"></a>
+
+        <p><span
+         class="AUTHOR">Paul Sheer</span>, <em>LINUX: Rute User&#39;s
+        Tutorial and Exposition</em>, 1st edition, , 2002,
+        0-13-033351-4.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Очень хорошее введение в системное администрирование
+            Linux.</p>
+
+            <p>Эта книга доступна в <a
+             href="http://rute.sourceforge.net/"
+             target="_top">on-line</a>.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14319"></a>
+
+        <p><span
+         class="AUTHOR">Ellen Siever</span> <span
+         class="AUTHOR">and the staff of O&#39;Reilly and
+        Associates</span>, <em>Linux in a Nutshell</em>, 2nd edition,
+        O&#39;Reilly and Associates, 1999, 1-56592-585-8.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Один из лучших справочников по командам Linux, имеет
+            раздел, посвященный Bash.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14336"></a>
+
+        <p><em>The UNIX CD Bookshelf</em>, 3rd edition, O&#39;Reilly
+        and Associates, 2003, 0-596-00392-7.</p>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Сборник из 7-ми книг по UNIX на CD ROM. В состав
+            сборника входят такие книги, как <span
+             class="emphasis"><em
+             class="EMPHASIS">UNIX Power Tools</em></span>, <span
+             class="emphasis"><em
+             class="EMPHASIS">Sed and Awk</em></span> и <span
+             class="emphasis"><em
+             class="EMPHASIS">Learning the Korn Shell</em></span>.
+            Полный набор необходимых справочных и учебных материалов,
+            который вам только может понадобиться. Стоит примерно
+            $130.</p>
+
+            <p>*</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14350"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Книги издательства O&#39;Reilly, посвященные Perl.</p>
+
+            <p>---</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14354"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Ben Okopnik опубликовал серию отличных статей <span
+             class="emphasis"><em
+             class="EMPHASIS">introductory Bash scripting</em></span> в
+            выпусках 53, 54, 55, 57 и 59 на сайте <a
+             href="http://www.linuxgazette.com"
+             target="_top">Linux Gazette</a> , и статью <span
+             class="QUOTE">&quot;The Deep, Dark Secrets of
+            Bash&quot;</span> в выпуске 56.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14360"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Chet Ramey <span
+             class="emphasis"><em
+             class="EMPHASIS">bash - The GNU Shell</em></span> -- серия
+            статей в 3 и 4 выпусках <a
+             href="http://www.linuxjournal.com"
+             target="_top">Linux Journal</a>, Июль-Август 1994.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14365"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Mike G <a
+             href=
+            "http://www.tldp.org/HOWTO/Bash-Prog-Intro-HOWTO.html"
+             target="_top">Bash-Programming-Intro HOWTO</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14369"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Richard <a
+             href="http://www.injunea.demon.co.uk/index.htm"
+             target="_top">UNIX Scripting Universe</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14373"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Chet Ramey <a
+             href="ftp://ftp.cwru.edu/pub/bash/FAQ"
+             target="_top">Bash F.A.Q.</a></p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14377"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Ed Schaefer <a
+             href="http://www.unixreview.com/columns/schaefer/"
+             target="_top">Shell Corner</a> на <a
+             href="http://www.unixreview.com"
+             target="_top">Unix Review</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14382"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Примеры сценариев: <a
+             href="http://alge.anart.no/linux/scripts/"
+             target="_top">Lucc&#39;s Shell Scripts</a> .</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14386"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Примеры сценариев: <a
+             href="http://www.shelldorado.com"
+             target="_top">SHELLdorado</a> .</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14390"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Примеры сценариев: <a
+             href=
+            "http://clri6f.gsi.de/gnu/bash-2.01/examples/scripts.noah/"
+             target="_top">Noah Friedman&#39;s script site</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14394"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Steve Parker <a
+             href="http://steve-parker.org/sh/sh.shtml"
+             target="_top">Shell Programming Stuff</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14398"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Примеры сценариев: <a
+             href=
+            "http://sourceforge.net/snippet/browse.php?by=lang&amp;lang=7"
+             target="_top">SourceForge Snippet Library - shell
+            scripts</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14402"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Giles Orr <a
+             href="http://www.tldp.org/HOWTO/Bash-Prompt-HOWTO/"
+             target="_top">Bash-Prompt HOWTO</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14406"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Замечательное руководство по регулярным выражениям,
+            <strong
+             class="COMMAND">sed</strong> и <strong
+             class="COMMAND">awk</strong> <a
+             href="http://www.grymoire.com/Unix/index.html"
+             target="_top">The UNIX Grymoire</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14412"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Eric Pement <a
+             href="http://www.student.northpark.edu/pemente/sed/"
+             target="_top">sed resources page</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14416"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p><a
+             href=
+            "http://sunsite.ualberta.ca/Documentation/Gnu/gawk-3.0.6/gawk.html"
+             target="_top">The GNU <strong
+             class="COMMAND">gawk</strong> reference manual</a>
+            (<strong
+             class="COMMAND">gawk</strong> -- GNU-версия <strong
+             class="COMMAND">awk</strong> для ОС Linux и BSD).</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14423"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Trent Fisher <a
+             href="http://www.cs.pdx.edu/~trent/gnu/groff/groff.html"
+             target="_top">groff tutorial</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14427"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Mark Komarinski <a
+             href="http://www.tldp.org/HOWTO/Printing-Usage-HOWTO.html"
+             target="_top">Printing-Usage HOWTO</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14431"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Хороший материал по <a
+             href="#IOREDIRREF">перенаправлению ввода/вывода</a> <a
+             href=
+            "http://sunsite.ualberta.ca/Documentation/Gnu/textutils-2.0/html_chapter/textutils_10.html"
+             target="_top">глава 10</a> на сайте <a
+             href="http://sunsite.ualberta.ca/Documentation"
+             target="_top">University of Alberta</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14437"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p><a
+             href="mailto:humbubba@smarty.smart.net"
+             target="_top">Rick Hohensee</a> <a
+             href=
+            "ftp://ftp.gwdg.de/pub/linux/install/clienux/interim/osimpa.tgz"
+             target="_top">osimpa</a> -- ассемблер для процессора i386,
+            написан полностью на Bash.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14442"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Rocky Bernstein ведет разработку <span
+             class="QUOTE">&quot;полнофункционального&quot;</span> <a
+             href="http://bashdb.sourceforge.net"
+             target="_top">отладчика</a> для Bash.</p>
+
+            <p>---</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14448"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Отличное руководство &quot;Bash Reference Manual&quot;,
+            авторы Chet Ramey и Brian Fox, распространяется в составе
+            пакета &quot;bash-2-doc&quot; (доступен как rpm). В этом
+            пакете вы найдете особенно поучительные примеры.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14451"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Группа новостей <a
+             href="news:comp.unix.shell"
+             target="_top">comp.os.unix.shell</a>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="BIBLIOENTRY">
+        <a
+         name="AEN14455"></a>
+
+        <div
+         class="BIBLIOENTRYBLOCK"
+         style="margin-left: 0.5in">
+          <div
+           class="ABSTRACT">
+            <p>Страницы руководства man по <strong
+             class="COMMAND">bash</strong> и <strong
+             class="COMMAND">bash2</strong>, <strong
+             class="COMMAND">date</strong>, <strong
+             class="COMMAND">expect</strong>, <strong
+             class="COMMAND">expr</strong>, <strong
+             class="COMMAND">find</strong>, <strong
+             class="COMMAND">grep</strong>, <strong
+             class="COMMAND">gzip</strong>, <strong
+             class="COMMAND">ln</strong>, <strong
+             class="COMMAND">patch</strong>, <strong
+             class="COMMAND">tar</strong>, <strong
+             class="COMMAND">tr</strong>, <strong
+             class="COMMAND">bc</strong>, <strong
+             class="COMMAND">xargs</strong>. Странички info по <strong
+             class="COMMAND">bash</strong>, <strong
+             class="COMMAND">dd</strong>, <strong
+             class="COMMAND">m4</strong>, <strong
+             class="COMMAND">gawk</strong> и <strong
+             class="COMMAND">sed</strong>.</p>
+          </div>
+        </div>
+      </div>
+
+      <div
+       class="APPENDIX">
+        <hr>
+
+        <h1><a
+         name="CONTRIBUTED-SCRIPTS"></a>Приложение A. Дополнительные
+        примеры сценариев</h1>
+
+        <p>В этом приложении собраны сценарии, которые не попали в
+        основной текст документа. Однако, они определенно стоят того,
+        что бы вы потратили время на их изучение.</p>
+
+        <div
+         class="EXAMPLE">
+          <a
+           name="MANVIEW"></a>
+
+          <p><strong>Пример A-1. manview: Просмотр страниц руководств
+          man</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# manview.sh: Просмотр страниц руководств man в форматированном виде.
+
+#  Полезен писателям страниц руководств, позволяет просмотреть страницы в исходном коде
+#+ как они будут выглядеть в конечном виде.
+
+E_WRONGARGS=65
+
+if [ -z &quot;$1&quot; ]
+then
+  echo &quot;Порядок использования: `basename $0` имя_файла&quot;
+  exit $E_WRONGARGS
+fi
+
+groff -Tascii -man $1 | less
+
+# Если страница руководства включает в себя таблицы и/или выражения,
+# то этот сценарий &quot;стошнит&quot;.
+# Для таких случаев можно использовать следующую строку.
+#
+#   gtbl &lt; &quot;$1&quot; | geqn -Tlatin1 | groff -Tlatin1 -mtty-char -man
+#
+#   Спасибо S.C.
+
+exit 0
+
+<a href="abs8.html">Advanced Bash-Scripting Guide - Часть 8</a>
+  </body>
+</html>
+

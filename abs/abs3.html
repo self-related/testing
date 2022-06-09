@@ -1,0 +1,5928 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+
+<html>
+  <head>
+    <meta
+     name="generator"
+     content=
+    "HTML Tidy for Linux/x86 (vers 1st July 2002), see www.w3.org">
+
+    <title>Advanced Bash-Scripting Guide - Часть 3</title>
+    <meta
+     http-equiv="Content-Type"
+     content="text/html; charset=koi8-r">
+    <meta
+     name="GENERATOR"
+     content="Modular DocBook HTML Stylesheet Version 1.7">
+  </head>
+        <h1
+         class="TITLE"><a
+         name="AEN2"></a>Advanced Bash-Scripting Guide - Часть 3</h1>
+  <body
+   class="BOOK"
+   bgcolor="#FFFFFF"
+   text="#000000"
+   link="#0000FF"
+   vlink="#840084"
+   alink="#0000FF">
+      <div
+       class="TOC">
+
+                  <dt>9.7. <a
+                   href="#DBLPARENS">Двойные круглые скобки</a></dt>
+                </dl>
+              </dd>
+
+              <dt>10. <a
+               href="#LOOPS">Циклы и ветвления</a></dt>
+
+              <dd>
+                <dl>
+                  <dt>10.1. <a
+                   href="#LOOPS1">Циклы</a></dt>
+
+                  <dt>10.2. <a
+                   href="#NESTEDLOOPS">Вложенные циклы</a></dt>
+
+                  <dt>10.3. <a
+                   href="#LOOPCONTROL">Управление ходом выполнения
+                  цикла</a></dt>
+
+                  <dt>10.4. <a
+                   href="#TESTBRANCH">Операторы выбора</a></dt>
+                </dl>
+              </dd>
+
+              <dt>11. <a
+               href="#INTERNAL">Внутренние команды</a></dt>
+
+              <dd>
+                <dl>
+                  <dt>11.1. <a
+                   href="#AEN6110">Команды управления
+                  заданиями</a></dt>
+                </dl>
+              </dd>
+
+              <dt>12. <a
+               href="#EXTERNAL">Внешние команды, программы и
+              утилиты</a></dt>
+
+              <dd>
+                <dl>
+                  <dt>12.1. <a
+                   href="#BASIC">Базовые команды</a></dt>
+
+                  <dt>12.2. <a
+                   href="#MOREADV">Более сложные команды</a></dt>
+
+                </dl>
+              </dd>
+
+
+
+</pre>
+            </div>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="PICKCARD"></a>
+
+              <p><strong>Пример 9-24. Выбор случайной карты из
+              колоды</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# pick-card.sh
+
+# Пример выбора случайного элемента массива.
+
+
+# Выбор случайной карты из колоды.
+
+Suites=&quot;Треф
+Бубей
+Червей
+Пик&quot;
+
+Denominations=&quot;2
+3
+4
+5
+6
+7
+8
+9
+10
+Валет
+Дама
+Король
+Туз&quot;
+
+suite=($Suites)                # Инициализация массивов.
+denomination=($Denominations)
+
+num_suites=${#suite[*]}        # Количество элементов массивов.
+num_denominations=${#denomination[*]}
+
+echo -n &quot;${denomination[$((RANDOM%num_denominations))]} &quot;
+echo ${suite[$((RANDOM%num_suites))]}
+
+
+# $bozo sh pick-cards.sh
+# Валет Треф
+
+
+# Спасибо &quot;jipe,&quot; за пояснения по работе с $RANDOM.
+exit 0
+</pre>
+            </div>
+
+            <div
+             class="NOTE">
+              <table
+               class="NOTE"
+               width="100%"
+               border="0">
+                <tr>
+                  <td
+                   width="25"
+                   align="center"
+                   valign="top"><img
+                   src="misc/abs-book/images/note.gif"
+                   hspace="5"
+                   alt="Note"></td>
+
+                  <td
+                   align="left"
+                   valign="top">
+                    <p><span
+                     class="emphasis"><em
+                     class="EMPHASIS">Jipe</em></span> подсказал еще
+                    один способ генерации случайных чисел из заданного
+                    диапазона.</p>
+<pre
+ class="PROGRAMLISTING">
+#  Генерация случайных чисел в диапазоне 6 - 30.
+rnumber=$((RANDOM%25+6))
+
+#  Генерируется случайное число из диапазона 6 - 30,
+#+ но при этом число должно делиться на 3 без остатка.
+rnumber=$(((RANDOM%30/3+1)*3))
+
+#  Упражнение: Попробуйте разобраться с выражением самостоятельно.
+</pre>
+                    <br>
+                    <br>
+                  </td>
+                </tr>
+              </table>
+            </div>
+
+            <p>Насколько случайны числа, возвращаемые функцией $RANDOM?
+            Лучший способ оценить &quot;случайность&quot; генерируемых
+            чисел -- это написать сценарий, который будет имитировать
+            бросание игрального кубика достаточно большое число раз, а
+            затем выведет количество выпадений каждой из граней...</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="RANDOMTEST"></a>
+
+              <p><strong>Пример 9-25. Имитация бросания кубика с
+              помощью RANDOM</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Случайные ли числа возвращает RANDOM?
+
+RANDOM=$$       # Инициализация генератора случайных чисел числом PID процесса-сценария.
+
+PIPS=6          # Кубик имеет 6 граней.
+MAXTHROWS=600   # Можете увеличить, если не знаете куда девать свое время.
+throw=0         # Счетчик бросков.
+
+zeroes=0        # Обнулить счетчики выпадения отдельных граней.
+ones=0          # т.к. неинициализированные переменные - &quot;пустые&quot;, и не равны нулю!.
+twos=0
+threes=0
+fours=0
+fives=0
+sixes=0
+
+print_result ()
+{
+echo
+echo &quot;единиц   =   $ones&quot;
+echo &quot;двоек    =   $twos&quot;
+echo &quot;троек    =   $threes&quot;
+echo &quot;четверок =   $fours&quot;
+echo &quot;пятерок  =   $fives&quot;
+echo &quot;шестерок =   $sixes&quot;
+echo
+}
+
+update_count()
+{
+case &quot;$1&quot; in
+  0) let &quot;ones += 1&quot;;;   # 0 соответствует грани &quot;1&quot;.
+  1) let &quot;twos += 1&quot;;;   # 1 соответствует грани &quot;2&quot;, и так далее
+  2) let &quot;threes += 1&quot;;;
+  3) let &quot;fours += 1&quot;;;
+  4) let &quot;fives += 1&quot;;;
+  5) let &quot;sixes += 1&quot;;;
+esac
+}
+
+echo
+
+
+while [ &quot;$throw&quot; -lt &quot;$MAXTHROWS&quot; ]
+do
+  let &quot;die1 = RANDOM % $PIPS&quot;
+  update_count $die1
+  let &quot;throw += 1&quot;
+done
+
+print_result
+
+# Количество выпадений каждой из граней должно быть примерно одинаковым, если считать RANDOM достаточно случайным.
+# Для $MAXTHROWS = 600, каждая грань должна выпасть примерно 100 раз (плюс-минус 20).
+#
+# Имейте ввиду, что RANDOM - это генератор ПСЕВДОСЛУЧАЙНЫХ чисел,
+
+# Упражнение:
+# ---------------
+# Перепишите этот сценарий так, чтобы он имитировал 1000 бросков монеты.
+# На каждом броске возможен один из двух вариантов выпадения - &quot;ОРЕЛ&quot; или &quot;РЕШКА&quot;.
+
+exit 0
+</pre>
+            </div>
+
+            <p>Как видно из последнего примера, неплохо было бы
+            производить переустановку начального числа генератора
+            случайных чисел <tt
+             class="VARNAME">RANDOM</tt> перед тем, как начать работу с
+            ним. Если используется одно и то же начальное число, то
+            генератор <tt
+             class="VARNAME">RANDOM</tt> будет выдавать одну и ту же
+            последовательность чисел. (Это совпадает с поведением
+            функции <tt
+             class="REPLACEABLE"><em>random()</em></tt> в языке C.)</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="SEEDINGRANDOM"></a>
+
+              <p><strong>Пример 9-26. Переустановка RANDOM</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# seeding-random.sh: Переустановка переменной RANDOM.
+
+MAXCOUNT=25       # Длина генерируемой последовательности чисел.
+
+random_numbers ()
+{
+count=0
+while [ &quot;$count&quot; -lt &quot;$MAXCOUNT&quot; ]
+do
+  number=$RANDOM
+  echo -n &quot;$number &quot;
+  let &quot;count += 1&quot;
+done
+}
+
+echo; echo
+
+RANDOM=1          # Переустановка начального числа генератора случайных чисел RANDOM.
+random_numbers
+
+echo; echo
+
+RANDOM=1          # То же самое начальное число...
+random_numbers    # ...в результате получается та же последовательность чисел.
+                  #
+                  # В каких случаях может оказаться полезной генерация совпадающих серий?
+
+echo; echo
+
+RANDOM=2          # Еще одна попытка, но с другим начальным числом...
+random_numbers    # получим другую последовательность.
+
+echo; echo
+
+# RANDOM=$$  в качестве начального числа выбирается PID процесса-сценария.
+# Вполне допустимо взять в качестве начального числа результат работы команд &#39;time&#39; или &#39;date&#39;.
+
+# Немного воображения...
+SEED=$(head -1 /dev/urandom | od -N 1 | awk &#39;{ print $2 }&#39;)
+#  Псевдослучайное число забирается
+#+ из системного генератора псевдослучайных чисел /dev/urandom ,
+#+ затем конвертируется в восьмеричное число командой &quot;od&quot;,
+#+ и наконец &quot;awk&quot; возвращает единственное число для переменной SEED.
+RANDOM=$SEED
+random_numbers
+
+echo; echo
+
+exit 0
+</pre>
+            </div>
+
+            <p><a
+             name="URANDOMREF"></a></p>
+
+            <div
+             class="NOTE">
+              <table
+               class="NOTE"
+               width="100%"
+               border="0">
+                <tr>
+                  <td
+                   width="25"
+                   align="center"
+                   valign="top"><img
+                   src="misc/abs-book/images/note.gif"
+                   hspace="5"
+                   alt="Note"></td>
+
+                  <td
+                   align="left"
+                   valign="top">
+                    <p>Системный генератор <tt
+                     class="FILENAME">/dev/urandom</tt> дает
+                    последовательность псевдослучайных чисел с более
+                    равномерным распределением, чем <tt
+                     class="VARNAME">$RANDOM</tt>. Команда <tt
+                     class="USERINPUT"><strong>dd if=/dev/urandom
+                    of=targetfile bs=1 count=XX</strong></tt> создает
+                    файл, содержащий последовательность псевдослучайных
+                    чисел. Однако, эти числа требуют дополнительной
+                    обработки, например с помощью команды <a
+                     href="#ODREF">od</a> (этот прием используется в
+                    примере выше) или <a
+                     href="#DDREF">dd</a> (см. <a
+                     href="#BLOTOUT">Пример 12-42</a>).</p>
+
+                    <p><a
+                     name="AWKRANDOMREF"></a></p>
+
+                    <p>Есть и другие способы генерации псевдослучайных
+                    последовательностей в сценариях. <strong
+                     class="COMMAND">Awk</strong> имеет для этого
+                    достаточно удобные средства.</p>
+
+                    <div
+                     class="EXAMPLE">
+                      <a
+                       name="RANDOM2"></a>
+
+                      <p><strong>Пример 9-27. Получение псевдослучайных
+                      чисел с помощью <a
+                       href="#AWKREF">awk</a></strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# random2.sh: Генерация псевдослучайных чисел в диапазоне 0 - 1.
+# Используется функция rand() из awk.
+
+AWKSCRIPT=&#39; { srand(); print rand() } &#39;
+# Команды/параметры, передаваемые awk
+# Обратите внимание, функция srand() переустанавливает начальное число генератора случайных чисел.
+
+echo -n &quot;Случайное число в диапазоне от 0 до 1 = &quot;
+echo | awk &quot;$AWKSCRIPT&quot;
+
+exit 0
+
+
+# Упражнения:
+# ---------
+
+# 1) С помощью оператора цикла выведите 10 различных случайных чисел.
+#      (Подсказка: вам потребуется вызвать функцию &quot;srand()&quot;
+#      в каждом цикле с разными начальными числами.
+#      Что произойдет, если этого не сделать?)
+
+# 2) Заставьте сценарий генерировать случайные числа в диапазоне 10 - 100
+#      используя целочисленный множитель, как коэффициент масштабирования
+
+# 3) То же самое, что и во втором упражнении,
+#      но на этот раз случайные числа должны быть целыми.
+</pre>
+                    </div>
+                  </td>
+                </tr>
+              </table>
+            </div>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="DBLPARENS"></a>9.7. Двойные круглые скобки</h2>
+
+            <p>Эта конструкция во многом похожа на инструкцию <a
+             href="#LETREF">let</a>, внутри <strong
+             class="COMMAND">((...))</strong> вычисляются
+            арифметические выражения и возвращается их результат. В
+            простейшем случае, конструкция <tt
+             class="USERINPUT"><strong>a=$(( 5 + 3 ))</strong></tt>
+            присвоит переменной <span
+             class="QUOTE">&quot;a&quot;</span> значение выражения
+            <span
+             class="QUOTE">&quot;5 + 3&quot;</span>, или 8. Но, кроме
+            того, двойные круглые скобки позволяют работать с
+            переменными в стиле языка C.</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="CVARS"></a>
+
+              <p><strong>Пример 9-28. Работа с переменными в стиле
+              языка C</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Работа с переменными в стиле языка C.
+
+
+echo
+
+(( a = 23 ))  # Присвоение переменной в стиле C, с обоих строн от &quot;=&quot; стоят пробелы.
+echo &quot;a (начальное значение) = $a&quot;
+
+(( a++ ))     # Пост-инкремент &#39;a&#39;, в стиле C.
+echo &quot;a (после a++) = $a&quot;
+
+(( a-- ))     # Пост-декремент &#39;a&#39;, в стиле C.
+echo &quot;a (после a--) = $a&quot;
+
+
+(( ++a ))     # Пред-инкремент &#39;a&#39;, в стиле C.
+echo &quot;a (после ++a) = $a&quot;
+
+(( --a ))     # Пред-декремент &#39;a&#39;, в стиле C.
+echo &quot;a (после --a) = $a&quot;
+
+echo
+
+(( t = a&lt;45?7:11 ))   # Трехместный оператор в стиле языка C.
+echo &quot;If a &lt; 45, then t = 7, else t = 11.&quot;
+echo &quot;t = $t &quot;        # Да!
+
+echo
+
+# См. так же описание ((...))  в циклах &quot;for&quot; и &quot;while&quot;.
+
+# Эта конструкция доступна в Bash, начиная с версии 2.04.
+
+exit 0
+</pre>
+            </div>
+
+            <p>См. так же <a
+             href="#FORLOOPC">Пример 10-12</a>.</p>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="LOOPS"></a>Глава 10. Циклы и ветвления</h1>
+
+          <p>Управление ходом исполнения -- один из ключевых моментов
+          структурной организации сценариев на языке командной
+          оболочки. Циклы и преходы являются теми инструментальными
+          средствами, которые обеспечивают управление порядком
+          исполнения команд.</p>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="LOOPS1"></a>10.1. Циклы</h2>
+
+            <p><span
+             class="emphasis"><em
+             class="EMPHASIS">Цикл</em></span> -- это блок команд,
+            который исполняется многократно до тех пор, пока не будет
+            выполнено условие выхода из цикла.</p>
+
+            <div
+             class="VARIABLELIST">
+              <p><strong><a
+               name="FORLOOPREF1"></a>циклы for</strong></p>
+
+              <dl>
+                <dt><strong
+                 class="COMMAND">for (in)</strong></dt>
+
+                <dd>
+                  <p>Это одна из основных разновидностей циклов. И она
+                  значительно отличается от аналога в языке C.</p>
+
+                  <p><strong
+                   class="COMMAND">for</strong> <tt
+                   class="REPLACEABLE"><em>arg</em></tt> in [<tt
+                   class="REPLACEABLE"><em>list</em></tt>]<br>
+                   do<br>
+                   <tt
+                   class="REPLACEABLE"><em> команда(ы)</em></tt>...<br>
+                   done</p>
+                  <br>
+                  <br>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>На каждом проходе цикла,
+                          переменная-аргумент цикла <tt
+                           class="REPLACEABLE"><em>arg</em></tt>
+                          последовательно, одно за другим, принимает
+                          значения из списка <tt
+                           class="REPLACEABLE"><em>list</em></tt>.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+<pre
+ class="PROGRAMLISTING">
+for arg in &quot;$var1&quot; &quot;$var2&quot; &quot;$var3&quot; ... &quot;$varN&quot;
+# На первом проходе, $arg = $var1
+# На втором проходе, $arg = $var2
+# На третьем проходе, $arg = $var3
+# ...
+# На N-ном проходе, $arg = $varN
+
+# Элементы списка заключены в кавычки для того, чтобы предотвратить возможное разбиение их на отдельные аргументы (слова).
+</pre>
+                  <br>
+                  <br>
+
+                  <p>Элементы списка могут включать в себя шаблонные
+                  символы.</p>
+
+                  <p>Есл ключевое слово <strong
+                   class="COMMAND">do</strong> находится в одной строке
+                  со словом <strong
+                   class="COMMAND">for</strong>, то после списка
+                  аргументов (перед do) необходимо ставить точку с
+                  запятой.</p>
+
+                  <p><strong
+                   class="COMMAND">for</strong> <tt
+                   class="REPLACEABLE"><em>arg</em></tt> in [<tt
+                   class="REPLACEABLE"><em>list</em></tt>] ; do<br>
+                  </p>
+                  <br>
+                  <br>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX22"></a>
+
+                    <p><strong>Пример 10-1. Простой цикл
+                    for</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Список планет.
+
+for planet in Меркурий Венера Земля Марс Юпитер Сатурн Уран Нептун Плутон
+do
+  echo $planet
+done
+
+echo
+
+# Если &#39;список аргументов&#39; заключить в кавычки, то он будет восприниматься как единственный аргумент .
+for planet in &quot;Меркурий Венера Земля Марс Юпитер Сатурн Уран Нептун Плутон&quot;
+do
+  echo $planet
+done
+
+exit 0
+</pre>
+                  </div>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>Каждый из элементов <tt
+                           class=
+                          "USERINPUT"><strong>[списка]</strong></tt>
+                          может содержать несколько аргументов. Это
+                          бывает полезным при обработке групп
+                          параметров. В этом случае, для
+                          принудительного разбора каждого из аргументов
+                          в списке, необходимо использовать инструкцию
+                          <strong
+                           class="COMMAND">set</strong> (см. <a
+                           href="#EX34">Пример 11-13</a>).</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX22A"></a>
+
+                    <p><strong>Пример 10-2. Цикл for с двумя
+                    параметрами в каждом из элементов
+                    списка</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Список планет.
+
+# Имя кажой планеты ассоциировано с расстоянием от планеты до Солнца (млн. миль).
+
+for planet in &quot;Меркурий 36&quot; &quot;Венера 67&quot; &quot;Земля 93&quot;  &quot;Марс 142&quot; &quot;Юпитер 483&quot;
+do
+  set -- $planet  # Разбиение переменной &quot;planet&quot; на множество аргументов (позиционных параметров).
+  # Конструкция &quot;--&quot; предохраняет от неожиданностей, если $planet &quot;пуста&quot; или начинается с символа &quot;-&quot;.
+
+  # Если каждый из аргументов потребуется сохранить, поскольку на следующем проходе они будут &quot;забиты&quot; новыми значениями,
+  # То можно поместить их в массив,
+  #        original_params=(&quot;$@&quot;)
+
+  echo &quot;$1      в $2,000,000 миль от Солнца&quot;
+  #----две табуляции---к параметру $2 добавлены нули
+done
+
+# (Спасибо S.C., за разъяснения.)
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>В качестве списка, в цикле <strong
+                   class="COMMAND">for</strong>, можно использовать
+                  переменную.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="FILEINFO"></a>
+
+                    <p><strong>Пример 10-3. <span
+                     class="emphasis"><em
+                     class="EMPHASIS">Fileinfo:</em></span> обработка
+                    списка файлов, находящегося в
+                    переменной</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# fileinfo.sh
+
+FILES=&quot;/usr/sbin/privatepw
+/usr/sbin/pwck
+/usr/sbin/go500gw
+/usr/bin/fakefile
+/sbin/mkreiserfs
+/sbin/ypbind&quot;     # Список интересующих нас файлов.
+                  # В список добавлен фиктивный файл /usr/bin/fakefile.
+
+echo
+
+for file in $FILES
+do
+
+  if [ ! -e &quot;$file&quot; ]       # Проверка наличия файла.
+  then
+    echo &quot;Файл $file не найден.&quot;; echo
+    continue                # Переход к следующей итерации.
+  fi
+
+  ls -l $file | awk &#39;{ print $8 &quot;         размер: &quot; $5 }&#39;  # Печать 2 полей.
+  whatis `basename $file`   # Информация о файле.
+  echo
+done  
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>В <tt
+                   class="USERINPUT"><strong>[списке]</strong></tt>
+                  цикла <strong
+                   class="COMMAND">for</strong> могут быть использованы
+                  имена файлов, которые в свою очередь могут содержать
+                  символы-шаблоны.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="LISTGLOB"></a>
+
+                    <p><strong>Пример 10-4. Обработка списка файлов в
+                    цикле for</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# list-glob.sh: Создание список файлов в цикле for с использованием
+# операции подстановки имен файлов (&quot;globbing&quot;).
+
+echo
+
+for file in *
+do
+  ls -l &quot;$file&quot;  # Список всех файлов в $PWD (текущем каталоге).
+  # Напоминаю, что символу &quot;*&quot; соответствует любое имя файла,
+  # однако, в операциях подстановки имен файлов (&quot;globbing&quot;),
+  # имеются исключения -- имена файлов, начинающиеся с точки.
+
+  # Если в каталоге нет ни одного файла, соответствующего шаблону,
+  # то за имя файла принимается сам шаблон.
+  # Чтобы избежать этого, используйте ключ nullglob
+  # (shopt -s nullglob).
+  # Спасибо S.C.
+done
+
+echo; echo
+
+for file in [jx]*
+do
+  rm -f $file    # Удаление файлов, начинающихся с &quot;j&quot; или &quot;x&quot; в $PWD.
+  echo &quot;Удален файл \&quot;$file\&quot;&quot;.
+done
+
+echo
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Если <tt
+                   class="USERINPUT"><strong>[список]</strong></tt> в
+                  цикле <strong
+                   class="COMMAND">for</strong> не задан, то в качестве
+                  оного используется переменная <span
+                   class="TOKEN">$@</span> -- список аргументов
+                  командной строки. Оень остроумно эта особенность
+                  проиллюстрирована в <a
+                   href="#PRIMES">Пример A-18</a>.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX23"></a>
+
+                    <p><strong>Пример 10-5. Цикл for без списка
+                    аргументов</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Попробуйте вызвать этот сценарий с аргументами и без них и посмотреть на результаты.
+
+for a
+do
+ echo -n &quot;$a &quot;
+done
+
+#  Список аргументов не задан, поэтому цикл работает с переменной &#39;$@&#39;
+#+ (список аргументов командной строки, включая пробельные символы).
+
+echo
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>При создании списка аргументов, в цикле for
+                  допускается пользоваться <a
+                   href="#COMMANDSUBREF">подстановкой команд</a>. См.
+                  <a
+                   href="#EX53">Пример 12-39</a>, <a
+                   href="#SYMLINKS">Пример 10-10</a> и <a
+                   href="#BASE">Пример 12-33</a>.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="FORLOOPCMD"></a>
+
+                    <p><strong>Пример 10-6. Создание списка аргументов
+                    в цикле for с помощью операции подстановки
+                    команд</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# уЩЫЬ for гЯ [гаЩгЫЯЭ], гЯкФСЮЮйЭ г аЯЭЯниР аЯФгдСЮЯзЫЩ ЫЯЭСЮФ.
+
+NUMBERS=&quot;9 7 3 8 37.53&quot;
+
+for number in `echo $NUMBERS`  # for number in 9 7 3 8 37.53
+do
+  echo -n &quot;$number &quot;
+done
+
+echo 
+exit 0
+</pre>
+                  </div>
+
+                  <p>Более сложный пример использования подстановки
+                  команд при создании списка аргументов цикла.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="BINGREP"></a>
+
+                    <p><strong>Пример 10-7. <a
+                     href="#GREPREF">grep</a> для бинарных
+                    файлов</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# bin-grep.sh: Поиск строк в двоичных файлах.
+
+# замена &quot;grep&quot; для бинарных файлов.
+# Аналогично команде &quot;grep -a&quot;
+
+E_BADARGS=65
+E_NOFILE=66
+
+if [ $# -ne 2 ]
+then
+  echo &quot;Порядок использования: `basename $0` string filename&quot;
+  exit $E_BADARGS
+fi
+
+if [ ! -f &quot;$2&quot; ]
+then
+  echo &quot;Файл \&quot;$2\&quot; не найден.&quot;
+  exit $E_NOFILE
+fi
+
+
+for word in $( strings &quot;$2&quot; | grep &quot;$1&quot; )
+# Инструкция &quot;strings&quot; возвращает список строк в двоичных файлах.
+# Который затем передается по конвейеру команде &quot;grep&quot;, для выполнения поиска.
+do
+  echo $word
+done
+
+# Как указывает S.C., вышепрведенное объявление цикла for может быть упрощено
+#    strings &quot;$2&quot; | grep &quot;$1&quot; | tr -s &quot;$IFS&quot; &#39;[\n*]&#39;
+
+
+# Попробуйте что нибудь подобное:  &quot;./bin-grep.sh mem /bin/ls&quot;
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Еще один пример.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="USERLIST"></a>
+
+                    <p><strong>Пример 10-8. Список всех пользователей
+                    системы</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# userlist.sh
+
+PASSWORD_FILE=/etc/passwd
+n=1           # Число пользователей
+
+for name in $(awk &#39;BEGIN{FS=&quot;:&quot;}{print $1}&#39; &lt; &quot;$PASSWORD_FILE&quot; )
+# Разделитель полей = :  ^^^^^^
+# Вывод первого поля              ^^^^^^^^
+# Данные берутся из файла паролей            ^^^^^^^^^^^^^^^^^
+do
+  echo &quot;Пользователь #$n = $name&quot;
+  let &quot;n += 1&quot;
+done
+
+
+# Пользователь #1 = root
+# Пользователь #2 = bin
+# Пользователь #3 = daemon
+# ...
+# Пользователь #30 = bozo
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>И заключительный пример использования подстановки
+                  команд при создании [списка].</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="FINDSTRING"></a>
+
+                    <p><strong>Пример 10-9. Проверка авторства всех
+                    бинарных файлов в текущем каталоге</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# findstring.sh:
+# Поиск заданной строки в двоичном файле.
+
+directory=/usr/local/bin/
+fstring=&quot;Free Software Foundation&quot;  # Поиск файлов от FSF.
+
+for file in $( find $directory -type f -name &#39;*&#39; | sort )
+do
+  strings -f $file | grep &quot;$fstring&quot; | sed -e &quot;s%$directory%%&quot;
+  #  Команде &quot;sed&quot; передается выражение (ключ -e),
+  #+ для того, чтобы изменить обычный разделитель &quot;/&quot; строки поиска и строки замены
+  #+ поскольку &quot;/&quot; - один из отфильтровываемых символов.
+  #  Использование такого символа порождает сообщение об ошибке (попробуйте).
+done
+
+exit 0
+
+#  Упражнение:
+#  ---------------
+#  Измените сценарий таким образом, чтобы он брал
+#+ $directory и $fstring из командной строки.
+</pre>
+                  </div>
+
+                  <p>Результат работы цикла <strong
+                   class="COMMAND">for</strong> может передаваться
+                  другим командам по конвейеру.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="SYMLINKS"></a>
+
+                    <p><strong>Пример 10-10. Список символических
+                    ссылок в каталоге</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# symlinks.sh: Список символических ссылок в каталоге.
+
+
+directory=${1-`pwd`}
+#  По-умолчанию в текущем каталоге,
+#  Блок кода, который выполняет аналогичные действия.
+# ----------------------------------------------------------
+# ARGS=1                 # Ожидается один аргумент командной строки.
+#
+# if [ $# -ne &quot;$ARGS&quot; ]  # Если каталог поиска не задан...
+# then
+#   directory=`pwd`      # текущий каталог
+# else
+#   directory=$1
+# fi
+# ----------------------------------------------------------
+
+echo &quot;символические ссылки в каталоге \&quot;$directory\&quot;&quot;
+
+for file in &quot;$( find $directory -type l )&quot;   # -type l = символические ссылки
+do
+  echo &quot;$file&quot;
+done | sort             # В противном случае получится неотсортированный список.
+
+#  Как отмечает Dominik &#39;Aeneas&#39; Schnitzer,
+#+ в случае отсутствия кавычек для $( find $directory -type l )
+#+ сценарий &quot;подавится&quot; именами файлов, содержащими пробелы.
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Вывод цикла может быть <a
+                   href="#IOREDIRREF">перенаправлен</a> со <tt
+                   class="FILENAME">stdout</tt> в файл, ниже приводится
+                  немного модифицированный вариант предыдущего примера,
+                  демонстрирующий эту возможность.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="SYMLINKS2"></a>
+
+                    <p><strong>Пример 10-11. Список символических
+                    ссылок в каталоге, сохраняемый в файле</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# symlinks.sh: Список символических ссылок в каталоге.
+
+OUTFILE=symlinks.list                         # файл со списком
+
+directory=${1-`pwd`}
+#  По-умолчанию -- текущий каталог,
+
+echo &quot;символические ссылки в каталоге \&quot;$directory\&quot;&quot; &gt; &quot;$OUTFILE&quot;
+echo &quot;---------------------------&quot; &gt;&gt; &quot;$OUTFILE&quot;
+
+for file in &quot;$( find $directory -type l )&quot;    # -type l = символические ссылки
+do
+  echo &quot;$file&quot;
+done | sort &gt;&gt; &quot;$OUTFILE&quot;                     # перенаправление вывода
+#           ^^^^^^^^^^^^^                       в файл.
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Оператор цикла <strong
+                   class="COMMAND">for</strong> имеет и альтернативный
+                  синтаксис записи -- очень похожий на синтаксис
+                  оператора for в языке C. Для этого используются
+                  двойные круглые скобки.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="FORLOOPC"></a>
+
+                    <p><strong>Пример 10-12. C-подобный синтаксис
+                    оператора цикла for</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Два вапианта оформления цикла.
+
+echo
+
+# Стандартный синтаксис.
+for a in 1 2 3 4 5 6 7 8 9 10
+do
+  echo -n &quot;$a &quot;
+done
+
+echo; echo
+
+# +==========================================+
+
+# А теперь C-подобный синтаксис.
+
+LIMIT=10
+
+for ((a=1; a &lt;= LIMIT ; a++))  # Двойные круглые скобки и &quot;LIMIT&quot; без &quot;$&quot;.
+do
+  echo -n &quot;$a &quot;
+done                           # Конструкция заимствована из &#39;ksh93&#39;.
+
+echo; echo
+
+# +=========================================================================+
+
+# Попробуем и C-шный оператор &quot;запятая&quot;.
+
+for ((a=1, b=1; a &lt;= LIMIT ; a++, b++))  # Запятая разделяет две операции, которые выполняются совместно.
+do
+  echo -n &quot;$a-$b &quot;
+done
+
+echo; echo
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>См. так же <a
+                   href="#QFUNCTION">Пример 25-10</a>, <a
+                   href="#TWODIM">Пример 25-11</a> и <a
+                   href="#COLLATZ">Пример A-7</a>.</p>
+
+                  <p>---</p>
+
+                  <p>А сейчас пример сценария, который может найти
+                  &quot;реальное&quot; применение.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX24"></a>
+
+                    <p><strong>Пример 10-13. Работа с командой efax в
+                    пакетном режиме</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+EXPECTED_ARGS=2
+E_BADARGS=65
+
+if [ $# -ne $EXPECTED_ARGS ]
+# Проверка наличия аргументов командной строки.
+then
+   echo &quot;Порядок использования: `basename $0` phone# text-file&quot;
+   exit $E_BADARGS
+fi
+
+
+if [ ! -f &quot;$2&quot; ]
+then
+  echo &quot;Файл $2 не является текстовым файлом&quot;
+  exit $E_BADARGS
+fi
+
+
+fax make $2              # Создать fax-файлы из текстовых файлов.
+
+for file in $(ls $2.0*)  # Все файлы, получившиеся в результате преобразования.
+                         # Используется шаблонный символ в списке.
+do
+  fil=&quot;$fil $file&quot;
+done
+
+efax -d /dev/ttyS3 -o1 -t &quot;T$1&quot; $fil   # отправить.
+
+
+# Как указывает S.C., в цикл for может быть вставлена сама команда отправки в виде:
+#    efax -d /dev/ttyS3 -o1 -t &quot;T$1&quot; $2.0*
+# но это не так поучительно [;-)].
+
+exit 0
+</pre>
+                  </div>
+                </dd>
+
+                <dt><a
+                 name="WHILELOOPREF"></a><strong
+                 class="COMMAND">while</strong></dt>
+
+                <dd>
+                  <p>Оператор while проверяет условие перед началом
+                  каждой итерации и если условие истинно (если <a
+                   href="#EXITSTATUSREF">код возврата</a> равен <span
+                   class="RETURNVALUE">0</span>), то управление
+                  передается в тело цикла. В отличие от циклов <a
+                   href="#FORLOOPREF1">for</a>, циклы <span
+                   class="emphasis"><em
+                   class="EMPHASIS">while</em></span> используются в
+                  тех случаях, когда количество итераций заранее не
+                  известно.</p>
+
+                  <p><strong
+                   class="COMMAND">while</strong> [<tt
+                   class="REPLACEABLE"><em>condition</em></tt>]<br>
+                   do<br>
+                   <tt
+                   class="REPLACEABLE"><em> command</em></tt>...<br>
+                   done</p>
+                  <br>
+                  <br>
+
+                  <p>Как и в случае с циклами <span
+                   class="TOKEN">for/in</span>, при размещении
+                  ключевого слова <strong
+                   class="COMMAND">do</strong> в одной строке с
+                  объявлением цикла, необходимо вставлять символ
+                  &quot;;&quot; перед <strong
+                   class="COMMAND">do</strong>.</p>
+
+                  <p><strong
+                   class="COMMAND">while</strong> [<tt
+                   class="REPLACEABLE"><em>condition</em></tt>] ;
+                  do</p>
+                  <br>
+                  <br>
+
+                  <p>Обратите внимание: в отдельных случаях, таких как
+                  использование конструкции <a
+                   href="#GETOPTSX">getopts</a> совместно с оператором
+                  <strong
+                   class="COMMAND">while</strong>, синтаксис несколько
+                  отличается от приводимого здесь.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX25"></a>
+
+                    <p><strong>Пример 10-14. Простой цикл
+                    while</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+var0=0
+LIMIT=10
+
+while [ &quot;$var0&quot; -lt &quot;$LIMIT&quot; ]
+do
+  echo -n &quot;$var0 &quot;        # -n подавляет перевод строки.
+  var0=`expr $var0 + 1`   # допускается var0=$(($var0+1)).
+done
+
+echo
+
+exit 0
+</pre>
+                  </div>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX26"></a>
+
+                    <p><strong>Пример 10-15. Другой пример цикла
+                    while</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo
+
+while [ &quot;$var1&quot; != &quot;end&quot; ]     # возможна замена на while test &quot;$var1&quot; != &quot;end&quot;
+do
+  echo &quot;Введите значение переменной #1 (end - выход) &quot;
+  read var1                    # Конструкция &#39;read $var1&#39; недопустима (почему?).
+  echo &quot;переменная #1 = $var1&quot; # кавычки обязательны, потому что имеется символ &quot;#&quot;.
+  # Если введено слово &#39;end&#39;, то оно тоже выводится на экран.
+  # потому, что проверка переменной выполняется в начале итерации (перед вводом).
+  echo
+done  
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Оператор <strong
+                   class="COMMAND">while</strong> может иметь несколько
+                  условий. Но только последнее из них определяет
+                  возможность продолжения цикла. В этом случае
+                  синтаксис оператора цикла должен быть несколько
+                  иным.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX26A"></a>
+
+                    <p><strong>Пример 10-16. Цикл while с несколькими
+                    условиями</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+var1=unset
+previous=$var1
+
+while echo &quot;предыдущее значение = $previous&quot;
+      echo
+      previous=$var1     # запомнить предыдущее значение
+      [ &quot;$var1&quot; != end ]
+      # В операторе &quot;while&quot; присутствуют 4 условия, но только последнее управляет циклом.
+      # *последнее* условие - единственное, которое вычисляется.
+do
+echo &quot;Введите значение переменной #1 (end - выход) &quot;
+  read var1
+  echo &quot;текущее значение = $var1&quot;
+done
+
+# попробуйте самостоятельно разобраться в сценарии works.
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Как и в случае с <strong
+                   class="COMMAND">for</strong>, цикл <strong
+                   class="COMMAND">while</strong> может быть записан в
+                  C-подобной нотации, с использованием двойных круглых
+                  скобок (см. так же <a
+                   href="#CVARS">Пример 9-28</a>).</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="WHLOOPC"></a>
+
+                    <p><strong>Пример 10-17. C-подобный синтаксис
+                    оформления цикла while</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# wh-loopc.sh: Цикл перебора от 1 до 10.
+
+LIMIT=10
+a=1
+
+while [ &quot;$a&quot; -le $LIMIT ]
+do
+  echo -n &quot;$a &quot;
+  let &quot;a+=1&quot;
+done           # Пока ничего особенного.
+
+echo; echo
+
+# +=================================================================+
+
+# А теперь оформим в стиле языка C.
+
+((a = 1))      # a=1
+# Двойные скобки допускают наличие лишних пробелов в выражениях.
+
+while (( a &lt;= LIMIT ))   # В двойных скобках символ &quot;$&quot; перед переменными опускается.
+do
+  echo -n &quot;$a &quot;
+  ((a += 1))   # let &quot;a+=1&quot;
+  # Двойные скобки позволяют наращивание переменной в стиле языка C.
+done
+
+echo
+
+# Теперь, программисты, пишущие на C, могут чувствовать себя в Bash как дома.
+
+exit 0
+</pre>
+                  </div>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>Стандартное устройство ввода <tt
+                           class="FILENAME">stdin</tt>, для цикла
+                          <strong
+                           class="COMMAND">while</strong>, можно <a
+                           href="#REDIRREF">перенаправить на файл</a> с
+                          помощью команды перенаправления <span
+                           class="TOKEN">&lt;</span> в конце цикла.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><a
+                 name="UNTILLOOPREF"></a><strong
+                 class="COMMAND">until</strong></dt>
+
+                <dd>
+                  <p>Оператор цикла <strong
+                   class="COMMAND">until</strong> проверяет условие в
+                  начале каждой итерации, но в отличие от <strong
+                   class="COMMAND">while</strong> итерация возможна
+                  только в том случае, если условие ложно.</p>
+
+                  <p><strong
+                   class="COMMAND">until</strong> [<tt
+                   class=
+                  "REPLACEABLE"><em>condition-is-true</em></tt>]<br>
+                   do<br>
+                   <tt
+                   class="REPLACEABLE"><em> command</em></tt>...<br>
+                   done</p>
+                  <br>
+                  <br>
+
+                  <p>Обратите внимание: оператор <strong
+                   class="COMMAND">until</strong> проверяет условие
+                  завершения цикла ПЕРЕД очередной итерацией, а не
+                  после, как это принято в некоторых языках
+                  программирования.</p>
+
+                  <p>Как и в случае с циклами <span
+                   class="TOKEN">for/in</span>, при размещении
+                  ключевого слова <strong
+                   class="COMMAND">do</strong> в одной строке с
+                  объявлением цикла, необходимо вставлять символ
+                  &quot;;&quot; перед <strong
+                   class="COMMAND">do</strong>.</p>
+
+                  <p><strong
+                   class="COMMAND">until</strong> [<tt
+                   class="REPLACEABLE"><em>condition-is-true</em></tt>]
+                  ; do</p>
+                  <br>
+                  <br>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX27"></a>
+
+                    <p><strong>Пример 10-18. Цикл until</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+until [ &quot;$var1&quot; = end ] # Проверка условия производится в начале итерации.
+do
+  echo &quot;Введите значение переменной #1 &quot;
+  echo &quot;(end - выход)&quot;
+  read var1
+  echo &quot;значение переменной #1 = $var1&quot;
+done  
+
+exit 0
+</pre>
+                  </div>
+                </dd>
+              </dl>
+            </div>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="NESTEDLOOPS"></a>10.2. Вложенные циклы</h2>
+
+            <p>Цикл называется вложенным, если он размещается внутри
+            другого цикла. На первом проходе, внешний цикл вызывает
+            внутренний, который исполняется до своего завершения, после
+            чего управление передается в тело внешнего цикла. На втором
+            проходе внешний цикл опять вызывает внутренний. И так до
+            тех пор, пока не завершится внешний цикл. Само собой, как
+            внешний, так и внутренний циклы могут быть прерваны
+            командой <strong
+             class="COMMAND">break</strong>.</p>
+
+            <div
+             class="EXAMPLE">
+              <a
+               name="NESTEDLOOP"></a>
+
+              <p><strong>Пример 10-19. Вложенный цикл</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Вложенные циклы &quot;for&quot;.
+
+outer=1             # Счетчик внешнего цикла.
+
+# Начало внешнего цикла.
+for a in 1 2 3 4 5
+do
+  echo &quot;Итерация #$outer внешнего цикла.&quot;
+  echo &quot;---------------------&quot;
+  inner=1           # Сброс счетчика вложенного цикла.
+
+  # Начало вложенного цикла.
+  for b in 1 2 3 4 5
+  do
+    echo &quot;Итерация #$inner вложенного цикла.&quot;
+    let &quot;inner+=1&quot;  # Увеличить счетчик итераций вложенного цикла.
+  done
+  # Конец вложенного цикла.
+
+  let &quot;outer+=1&quot;    # Увеличить счетчик итераций внешнего цикла.
+  echo              # Пустая строка для отделения итераций внешнего цикла.
+done
+# Конец внешнего цикла.
+
+exit 0
+</pre>
+            </div>
+
+            <p>Демонстрацию вложенных циклов <span
+             class="QUOTE">&quot;while&quot;</span> вы найдете в <a
+             href="#BUBBLE">Пример 25-6</a>, а вложение цикла <span
+             class="QUOTE">&quot;while&quot;</span> в <span
+             class="QUOTE">&quot;until&quot;</span> -- в <a
+             href="#EX68">Пример 25-8</a>.</p>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="LOOPCONTROL"></a>10.3. Управление ходом выполнения
+            цикла</h2>
+
+            <div
+             class="VARIABLELIST">
+              <dl>
+                <dt><strong
+                 class="COMMAND">break</strong>, <strong
+                 class="COMMAND">continue</strong></dt>
+
+                <dd>
+                  <p>Для управления ходом выполнения цикла служат
+                  команды <strong
+                   class="COMMAND">break</strong> и <strong
+                   class="COMMAND">continue</strong> <a
+                   name="AEN5175"
+                   href="#FTN.AEN5175"><span
+                   class="footnote">[23]</span></a> и точно
+                  соответствуют своим аналогам в других языках
+                  программирования. Команда <strong
+                   class="COMMAND">break</strong> прерывает исполнение
+                  цикла, в то время как <strong
+                   class="COMMAND">continue</strong> передает
+                  управление в начало цикло, минуя все последующие
+                  команды в теле цикла.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX28"></a>
+
+                    <p><strong>Пример 10-20. Команды break и continue в
+                    цикле</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+LIMIT=19  # Верхний предел
+
+echo
+echo &quot;Печать чисел от 1 до 20 (исключая 3 и 11).&quot;
+
+a=0
+
+while [ $a -le &quot;$LIMIT&quot; ]
+do
+ a=$(($a+1))
+
+ if [ &quot;$a&quot; -eq 3 ] || [ &quot;$a&quot; -eq 11 ]  # Исключить 3 и 11
+ then
+   continue  # Переход в начало цикла.
+ fi
+
+ echo -n &quot;$a &quot;
+done
+
+# Упражнение:
+# Почему число 20 тоже выводится?
+
+echo; echo
+
+echo Печать чисел от 1 до 20, но взгляните, что происходит после вывода числа 2
+
+##################################################################
+
+# Тот же цикл, только &#39;continue&#39; заменено на &#39;break&#39;.
+
+a=0
+
+while [ &quot;$a&quot; -le &quot;$LIMIT&quot; ]
+do
+ a=$(($a+1))
+
+ if [ &quot;$a&quot; -gt 2 ]
+ then
+   break  # Завершение работы цикла.
+ fi
+
+ echo -n &quot;$a &quot;
+done
+
+echo; echo; echo
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Команде <strong
+                   class="COMMAND">break</strong> может быть передан
+                  необязательный параметр. Команда <strong
+                   class="COMMAND">break</strong> без параметра
+                  прерывает тот цикл, в который она вставлена, а
+                  <strong
+                   class="COMMAND">break N</strong> прерывает цикл,
+                  стоящий на N уровней выше (причем 1-й уровень -- это
+                  уровень текущего цикла, прим. перев.).</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="BREAKLEVELS"></a>
+
+                    <p><strong>Пример 10-21. Прерывание многоуровневых
+                    циклов</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# break-levels.sh: Прерывание циклов.
+
+# &quot;break N&quot; прерывает исполнение цикла, стоящего на N уровней выше текущего.
+
+for outerloop in 1 2 3 4 5
+do
+  echo -n &quot;Группа $outerloop:   &quot;
+
+  for innerloop in 1 2 3 4 5
+  do
+    echo -n &quot;$innerloop &quot;
+
+    if [ &quot;$innerloop&quot; -eq 3 ]
+    then
+      break  # Попробуйте &quot;break 2&quot;,
+             # тогда будут прерываться как вложенный, так и внешний циклы
+    fi
+  done
+
+  echo
+done  
+
+echo
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Команда <strong
+                   class="COMMAND">continue</strong>, как и команда
+                  <strong
+                   class="COMMAND">break</strong>, может иметь
+                  необязательный параметр. В простейшем случае, команда
+                  <strong
+                   class="COMMAND">continue</strong> передает
+                  управление в начало текущего цикла, а команда <strong
+                   class="COMMAND">continue N</strong> прерывает
+                  исполнение текущего цикла и передает управление в
+                  начало внешнего цикла, отстоящего от текущего на N
+                  уровней (причем 1-й уровень -- это уровень текущего
+                  цикла, прим. перев.).</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="CONTINUELEVELS"></a>
+
+                    <p><strong>Пример 10-22. Передача управление в
+                    начало внешнего цикла</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Команда &quot;continue N&quot; передает управление в начало внешнего цикла, отстоящего от текущего на N уровней.
+
+for outer in I II III IV V           # внешний цикл
+do
+  echo; echo -n &quot;Группа $outer: &quot;
+
+  for inner in 1 2 3 4 5 6 7 8 9 10  # вложенный цикл
+  do
+
+    if [ &quot;$inner&quot; -eq 7 ]
+    then
+      continue 2  # Передача управления в начало цикла 2-го уровня.
+                  # попробуйте убрать параметр 2 команды &quot;continue&quot;
+    fi
+
+    echo -n &quot;$inner &quot;  # 8 9 10 никогда не будут напечатаны.
+  done
+
+done
+
+echo; echo
+
+# Упражнение:
+# Подумайте, где реально можно использовать &quot;continue N&quot; в сценариях.
+
+exit 0
+</pre>
+                  </div>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="CONTINUENEX"></a>
+
+                    <p><strong>Пример 10-23. Живой пример использования
+                    <span
+                     class="QUOTE">&quot;continue
+                    N&quot;</span></strong></p>
+<pre
+ class="PROGRAMLISTING">
+# Albert Reiner привел пример использования &quot;continue N&quot;:
+# ---------------------------------------------------------
+
+#  Допустим, у меня есть большое количество задач, обрабатывающие некоторые данные,
+#+ которые хранятся в некоторых файлах, с именами, задаваемыми по шаблону,
+#+ в заданном каталоге.
+#+ Есть несколько машин, которым открыт доступ к этому каталогу
+#+ и я хочу распределить обработку информации между машинами.
+#+ тогда я обычно для каждой машины пишу нечто подобное:
+
+while true
+do
+  for n in .iso.*
+  do
+    [ &quot;$n&quot; = &quot;.iso.opts&quot; ] &amp;&amp; continue
+    beta=${n#.iso.}
+    [ -r .Iso.$beta ] &amp;&amp; continue
+    [ -r .lock.$beta ] &amp;&amp; sleep 10 &amp;&amp; continue
+    lockfile -r0 .lock.$beta || continue
+    echo -n &quot;$beta: &quot; `date`
+    run-isotherm $beta
+    date
+    ls -alF .Iso.$beta
+    [ -r .Iso.$beta ] &amp;&amp; rm -f .lock.$beta
+    continue 2
+  done
+  break
+done
+
+#  Конкретная реализация цикла, особенно sleep N, зависит от конкретных применений,
+#+ но в общем случае он строится по такой схеме:
+
+while true
+do
+  for job in {шаблон}
+  do
+    {файл уже обработан или обрабатывается} &amp;&amp; continue
+    {пометить файл как обрабатываемый, обработать, пометить как обработанный}
+    continue 2
+  done
+  break        # Или что нибудь подобное `sleep 600&#39;, чтобы избежать завершения.
+done
+
+#  Этот сценарий завершит работу после того как все данные будут обработаны
+#+ (включая данные, которые поступили во время обработки). Использование
+#+ соответствующих lock-файлоа позволяет вести обработку на нескольких машинах
+#+ одновременно, не производя дублирующих вычислений [которые, в моем случае,
+#+ выполняются в течении нескольких часов, так что для меня это очень важно].
+#+ Кроме того, поскольку поиск необработанных файлов всегда начинается с
+#+ самого начала, можно задавать приоритеты в именах файлов. Конечно, можно
+#+ обойтись и без `continue 2&#39;, но тогда придется ввести дополнительную
+#+ проверку -- действительно ли был обработан тот или иной файл
+#+ (чтобы перейти к поиску следующего необработанного файла).
+</pre>
+                  </div>
+
+                  <div
+                   class="CAUTION">
+                    <table
+                     class="CAUTION"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/caution.gif"
+                         hspace="5"
+                         alt="Caution"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>Конструкция <strong
+                           class="COMMAND">continue N</strong> довольно
+                          сложна в понимании и применении, поэтому,
+                          вероятно лучше будет постараться избегать ее
+                          использования.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+              </dl>
+            </div>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="TESTBRANCH"></a>10.4. Операторы выбора</h2>
+
+            <p>Инструкции <strong
+             class="COMMAND">case</strong> и <strong
+             class="COMMAND">select</strong> технически не являются
+            циклами, поскольку не предусматривают многократное
+            исполнение блока кода. Однако, они, как и циклы, управляют
+            ходом исполнения программы, в зависимости от начальных или
+            конечных условий.</p>
+
+            <div
+             class="VARIABLELIST">
+              <p><strong><a
+               name="CASEESAC1"></a></strong></p>
+
+              <dl>
+                <dt><strong
+                 class="COMMAND">case (in) / esac</strong></dt>
+
+                <dd>
+                  <p>Конструкция <strong
+                   class="COMMAND">case</strong> эквивалентна
+                  конструкции <strong
+                   class="COMMAND">switch</strong> в языке C/C++. Она
+                  позволяет выполнять тот или иной участок кода, в
+                  зависимости от результатов проверки условий. Она
+                  является, своего рода, краткой формой записи большого
+                  количества операторов <span
+                   class="TOKEN">if/then/else</span> и может быть
+                  неплохим инструментом при создании разного рода
+                  меню.</p>
+
+                  <p><strong
+                   class="COMMAND">case</strong> &quot;$<tt
+                   class="REPLACEABLE"><em>variable</em></tt>&quot;
+                  in<br>
+                  <br>
+                    &quot;$<tt
+                   class="REPLACEABLE"><em>condition1</em></tt>&quot;
+                  )<br>
+                    <tt
+                   class="REPLACEABLE"><em>command</em></tt>...<br>
+                    ;;<br>
+                  <br>
+                    &quot;$<tt
+                   class="REPLACEABLE"><em>condition2</em></tt>&quot;
+                  )<br>
+                    <tt
+                   class="REPLACEABLE"><em>command</em></tt>...<br>
+                    ;;<br>
+                  <br>
+                   esac</p>
+                  <br>
+                  <br>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <ul>
+                            <li>
+                              <p>Заключать переменные в кавычки
+                              необязательно, поскольку здесь не
+                              производится разбиения на отдельные
+                              слова.</p>
+                            </li>
+
+                            <li>
+                              <p>Каждая строка с условием должна
+                              завершаться правой (закрывающей) круглой
+                              скобкой <span
+                               class="TOKEN">)</span>.</p>
+                            </li>
+
+                            <li>
+                              <p>Каждый блок команд, отрабатывающих по
+                              заданному условию, должен завершаться
+                              <span
+                               class="emphasis"><em
+                               class="EMPHASIS">двумя</em></span>
+                              символами точка-с-запятой <span
+                               class="TOKEN">;;</span>.</p>
+                            </li>
+
+                            <li>
+                              <p>Блок <strong
+                               class="COMMAND">case</strong> должен
+                              завершаться ключевым словом <strong
+                               class="COMMAND">esac</strong> (<em
+                               class="WORDASWORD">case</em> записанное
+                              в обратном порядке).</p>
+                            </li>
+                          </ul>
+                          <br>
+                          <br>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX29"></a>
+
+                    <p><strong>Пример 10-24. Использование
+                    case</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo; echo &quot;Нажмите клавишу и затем клавишу Return.&quot;
+read Keypress
+
+case &quot;$Keypress&quot; in
+  [a-z]   ) echo &quot;буква в нижнем регистре&quot;;;
+  [A-Z]   ) echo &quot;Буква в верхнем регистре&quot;;;
+  [0-9]   ) echo &quot;Цифра&quot;;;
+  *       ) echo &quot;Знак пунктуации, пробел или что-то другое&quot;;;
+esac  # Допускается указыватль диапазоны символов в [квадратных скобках].
+
+# Упражнение:
+# --------
+# Сейчас сценарий считывает нажатую клавишу и завершается.
+# Измените его так, чтобы сценарий продолжал отвечать на нажатия клавиш,
+# но завершался бы только после ввода символа &quot;X&quot;.
+# Подсказка: заключите все в цикл &quot;while&quot;.
+
+exit 0
+</pre>
+                  </div>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX30"></a>
+
+                    <p><strong>Пример 10-25. Создание меню с помощью
+                    case</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Грубый пример базы данных
+
+clear # Очистка экрана
+
+echo &quot;          Список&quot;
+echo &quot;          ------&quot;
+echo &quot;Выберите интересующую Вас персону:&quot;
+echo
+echo &quot;[E]vans, Roland&quot;
+echo &quot;[J]ones, Mildred&quot;
+echo &quot;[S]mith, Julie&quot;
+echo &quot;[Z]ane, Morris&quot;
+echo
+
+read person
+
+case &quot;$person&quot; in
+# Обратите внимание: переменная взята в кавычки.
+
+  &quot;E&quot; | &quot;e&quot; )
+  # Пользователь может ввести как заглавную, так и строчную букву.
+  echo
+  echo &quot;Roland Evans&quot;
+  echo &quot;4321 Floppy Dr.&quot;
+  echo &quot;Hardscrabble, CO 80753&quot;
+  echo &quot;(303) 734-9874&quot;
+  echo &quot;(303) 734-9892 fax&quot;
+  echo &quot;revans@zzy.net&quot;
+  echo &quot;Старый друг и партнер по бизнесу&quot;
+  ;;
+# Обратите внимание: блок кода, анализирующий конкретный выбор, завершается
+# двумя символами &quot;точка-с-запятой&quot;.
+
+  &quot;J&quot; | &quot;j&quot; )
+  echo
+  echo &quot;Mildred Jones&quot;
+  echo &quot;249 E. 7th St., Apt. 19&quot;
+  echo &quot;New York, NY 10009&quot;
+  echo &quot;(212) 533-2814&quot;
+  echo &quot;(212) 533-9972 fax&quot;
+  echo &quot;milliej@loisaida.com&quot;
+  echo &quot;Подружка&quot;
+  echo &quot;День рождения: 11 февраля&quot;
+  ;;
+
+# Информация о Smith и Zane будет добавлена позднее.
+
+          * )
+   # Выбор по-умолчанию.
+   # &quot;Пустой&quot; ввод тоже обрабатывается здесь.
+   echo
+   echo &quot;Нет данных.&quot;
+  ;;
+
+esac
+
+echo
+
+#  Упражнение:
+#  --------
+#  Измените этот сценарий таким образом, чтобы он не завершал работу
+#+ после вывода информации о персоне, а переходил на ожидание нового
+#+ ввода от пользователя.
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Очень хороший пример использования <strong
+                   class="COMMAND">case</strong> для анализа
+                  аргументов, переданных из командной строки.</p>
+<pre
+ class="PROGRAMLISTING">
+#! /bin/bash
+
+case &quot;$1&quot; in
+&quot;&quot;) echo &quot;Порядок использования: ${0##*/} &lt;filename&gt;&quot;; exit 65;;  # Параметры командной строки отсутствуют,
+                                                  # или первый параметр -- &quot;пустой&quot;.
+# Обратите внимание на ${0##*/} это подстановка параметра ${var##pattern}. В результате получается $0.
+
+-*) FILENAME=./$1;;   # Если имя файла (аргумент $1) начинается с &quot;-&quot;,
+                      # то заменить его на ./$1
+                      # тогда параметр не будет восприниматься как ключ команды.
+
+* ) FILENAME=$1;;     # В противном случае -- $1.
+esac
+</pre>
+                  <br>
+                  <br>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="CASECMD"></a>
+
+                    <p><strong>Пример 10-26. Оператор case допускает
+                    использовать подстановку команд вместо
+                    анализируемой переменной</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Подстановка команд в &quot;case&quot;.
+
+case $( arch ) in # команда &quot;arch&quot; возвращает строку, описывающую аппаратную апхитектуру.
+i386 ) echo &quot;Машина на базе процессора 80386&quot;;;
+i486 ) echo &quot;Машина на базе процессора 80486&quot;;;
+i586 ) echo &quot;Машина на базе процессора Pentium&quot;;;
+i686 ) echo &quot;Машина на базе процессора Pentium2 или выше&quot;;;
+*    ) echo &quot;Машина на другом типе процессора&quot;;;
+esac
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Оператор <strong
+                   class="COMMAND">case</strong> допускает
+                  использование шаблонных конструкций.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="MATCHSTRING"></a>
+
+                    <p><strong>Пример 10-27. Простой пример сравнения
+                    строк</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# match-string.sh: простое сравнение строк
+
+match_string ()
+{
+  MATCH=0
+  NOMATCH=90
+  PARAMS=2     # Функция требует два входных аргумента.
+  BAD_PARAMS=91
+
+  [ $# -eq $PARAMS ] || return $BAD_PARAMS
+
+  case &quot;$1&quot; in
+  &quot;$2&quot;) return $MATCH;;
+  *   ) return $NOMATCH;;
+  esac
+
+}
+
+
+a=one
+b=two
+c=three
+d=two
+
+
+match_string $a     # неверное число аргументов
+echo $?             # 91
+
+match_string $a $b  # не равны
+echo $?             # 90
+
+match_string $b $d  # равны
+echo $?             # 0
+
+
+exit 0
+</pre>
+                  </div>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="ISALPHA"></a>
+
+                    <p><strong>Пример 10-28. Проверка
+                    ввода</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# isalpha.sh: Использование &quot;case&quot; для анализа строк.
+
+SUCCESS=0
+FAILURE=-1
+
+isalpha ()  # Проверка - является ли первый символ строки символом алфавита.
+{
+if [ -z &quot;$1&quot; ]                # Вызов функции без входного аргумента?
+then
+  return $FAILURE
+fi
+
+case &quot;$1&quot; in
+[a-zA-Z]*) return $SUCCESS;;  # Первый символ - буква?
+*        ) return $FAILURE;;
+esac
+}             # Сравните с функцией &quot;isalpha ()&quot; в языке C.
+
+
+isalpha2 ()   # Проверка - состоит ли вся строка только из символов алфавита.
+{
+  [ $# -eq 1 ] || return $FAILURE
+
+  case $1 in
+  *[!a-zA-Z]*|&quot;&quot;) return $FAILURE;;
+               *) return $SUCCESS;;
+  esac
+}
+
+isdigit ()    # Проверка - состоит ли вся строка только из цифр.
+{             # Другими словами - является ли строка целым числом.
+  [ $# -eq 1 ] || return $FAILURE
+
+  case $1 in
+  *[!0-9]*|&quot;&quot;) return $FAILURE;;
+            *) return $SUCCESS;;
+  esac
+}
+
+
+
+check_var ()  # Интерфейс к isalpha
+{
+if isalpha &quot;$@&quot;
+then
+  echo &quot;\&quot;$*\&quot; начинается с алфавитного символа.&quot;
+  if isalpha2 &quot;$@&quot;
+  then        # Дальнейшая проверка не имеет смысла, если первй символ не буква.
+    echo &quot;\&quot;$*\&quot; содержит только алфавитные символы.&quot;
+  else
+    echo &quot;\&quot;$*\&quot; содержит по меньшей мере один не алфавитный символ.&quot;
+  fi
+else
+  echo &quot;\&quot;$*\&quot; начинсется с не алфавитного символа .&quot;
+              #  Если функция вызвана без входного параметра,
+              #+ то считается, что строка содержит &quot;не алфавитной&quot; символ.
+fi
+
+echo
+
+}
+
+digit_check ()  # Интерфейс к isdigit ().
+{
+if isdigit &quot;$@&quot;
+then
+  echo &quot;\&quot;$*\&quot; содержит только цифры [0 - 9].&quot;
+else
+  echo &quot;\&quot;$*\&quot; содержит по меньшей мере один не цифровой символ.&quot;
+fi
+
+echo
+
+}
+
+a=23skidoo
+b=H3llo
+c=-What?
+d=What?
+e=`echo $b`   # Подстановка команды.
+f=AbcDef
+g=27234
+h=27a34
+i=27.34
+
+check_var $a
+check_var $b
+check_var $c
+check_var $d
+check_var $e
+check_var $f
+check_var     # Вызов без параметра, что произойдет?
+#
+digit_check $g
+digit_check $h
+digit_check $i
+
+
+exit 0        # Сценарий дополнен S.C.
+
+# Упражнение:
+# --------
+#  Напишите функцию &#39;isfloat ()&#39;, которая проверяла бы вещественные числа.
+#  Подсказка: Эта функция подобна функции &#39;isdigit ()&#39;,
+#+ надо лишь добавить анализ наличия десятичной точки.
+</pre>
+                  </div>
+                </dd>
+
+                <dt><a
+                 name="SELECTREF"></a><strong
+                 class="COMMAND">select</strong></dt>
+
+                <dd>
+                  <p>Оператор <strong
+                   class="COMMAND">select</strong> был заимствован из
+                  Korn Shell, и является еще одним инструментом,
+                  используемым при создании меню.</p>
+
+                  <p><strong
+                   class="COMMAND">select</strong> <tt
+                   class="REPLACEABLE"><em>variable</em></tt> [in <tt
+                   class="REPLACEABLE"><em>list</em></tt>]<br>
+                   do<br>
+                    <tt
+                   class="REPLACEABLE"><em>command</em></tt>...<br>
+                    break<br>
+                   done</p>
+                  <br>
+                  <br>
+
+                  <p>Этот оператор предлагает пользователю выбрать один
+                  из представленных вариантов. Примечательно, что
+                  <strong
+                   class="COMMAND">select</strong> по-умолчанию
+                  использует в качестве приглашения к вводу (prompt) --
+                  <tt
+                   class="VARNAME">PS3</tt> (<tt
+                   class="PROMPT">#?</tt> ), который легко
+                  изменить.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX31"></a>
+
+                    <p><strong>Пример 10-29. Создание меню с помощью
+                    select</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+PS3=&#39;Выберите ваш любимый овощ: &#39; # строка приглашения к вводу (prompt)
+
+echo
+
+select vegetable in &quot;бобы&quot; &quot;морковь&quot; &quot;картофель&quot; &quot;лук&quot; &quot;брюква&quot;
+do
+  echo
+  echo &quot;Вы предпочитаете $vegetable.&quot;
+  echo &quot;;-))&quot;
+  echo
+  break  # если &#39;break&#39; убрать, то получится бесконечный цикл.
+done
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Если в операторе <strong
+                   class="COMMAND">select</strong> список <tt
+                   class="USERINPUT"><strong>in <tt
+                   class="REPLACEABLE"><em>list</em></tt></strong></tt>
+                  не задан, то в качестве списка будет использоваться
+                  список аргументов (<tt
+                   class="VARNAME">$@</tt>), передаваемый сценарию или
+                  функции.</p>
+
+                  <p>Сравните это с поведением оператора цикла</p>
+
+                  <p><strong
+                   class="COMMAND">for</strong> <tt
+                   class="REPLACEABLE"><em>variable</em></tt> [in <tt
+                   class="REPLACEABLE"><em>list</em></tt>]</p>
+                  в котором не задан список аргументов.<br>
+                  <br>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX32"></a>
+
+                    <p><strong>Пример 10-30. Создание меню с помощью
+                    select в функции</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+PS3=&#39;Выберите ваш любимый овощ: &#39;
+
+echo
+
+choice_of()
+{
+select vegetable
+# список выбора [in list] отсутствует, поэтому &#39;select&#39; использует входные аргументы функции.
+do
+  echo
+  echo &quot;Вы предпочитаете $vegetable.&quot;
+  echo &quot;;-))&quot;
+  echo
+  break
+done
+}
+
+choice_of бобы рис морковь редис томат шпинат
+#         $1   $2  $3      $4    $5    $6
+#         передача списка выбора в функцию choice_of()
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>См. так же <a
+                   href="#RESISTOR">Пример 34-3</a>.</p>
+                </dd>
+              </dl>
+            </div>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="INTERNAL"></a>Глава 11. Внутренние команды</h1>
+
+          <p><a
+           name="BUILTINREF"></a><em
+           class="FIRSTTERM">Внутренняя</em> команда -- это <strong
+           class="COMMAND">команда</strong>, которая встроена
+          непосредственно в Bash. Команды делаются встроенными либо из
+          соображений производительности -- встроенные команды
+          исполняются быстрее, чем внешние, которые, как правило,
+          запускаются в дочернем процессе, либо из-за необходимости
+          прямого доступа к внутренним структурам командного
+          интерпретатора.</p>
+
+          <p><a
+           name="FORKREF"></a></p>
+
+          <table
+           class="SIDEBAR"
+           border="1"
+           cellpadding="5">
+            <tr>
+              <td>
+                <div
+                 class="SIDEBAR">
+                  <a
+                   name="AEN5368"></a>
+
+                  <p>Действие, когда какая либо команда или сама
+                  командная оболочка инициирует (<span
+                   class="emphasis"><em
+                   class="EMPHASIS">порождает</em></span>) новый
+                  подпроцесс, что бы выполнить какую либо работу,
+                  называется <span
+                   class="emphasis"><em
+                   class="EMPHASIS">ветвлением</em></span> (<span
+                   class="emphasis"><em
+                   class="EMPHASIS">forking</em></span>) процесса.
+                  Новый процесс называется <span
+                   class="QUOTE">&quot;дочерним&quot;</span> (или
+                  &quot;потомком&quot;), а породивший его процесс --
+                  <span
+                   class="QUOTE">&quot;родительским&quot;</span> (или
+                  &quot;предком&quot;). В результате и <span
+                   class="emphasis"><em
+                   class="EMPHASIS">потомок</em></span> и <span
+                   class="emphasis"><em
+                   class="EMPHASIS">предок</em></span> продолжают
+                  исполняться одновременно -- параллельно друг
+                  другу.</p>
+
+                  <p>В общем случае, <span
+                   class="emphasis"><em
+                   class="EMPHASIS">встроенные команды</em></span>
+                  Bash, при исполнении внутри сценария, не порождают
+                  новый подпроцесс, в то время как вызов внешних
+                  команд, как правило, приводит к созданию нового
+                  подпроцесса.</p>
+                </div>
+              </td>
+            </tr>
+          </table>
+
+          <p>Внутренние команды могут иметь внешние аналоги. Например,
+          внутренняя команда Bash -- <strong
+           class="COMMAND">echo</strong> имеет внешний аналог <tt
+           class="FILENAME">/bin/echo</tt> и их поведение практически
+          идентично.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo &quot;Эта строка выводится внутренней командой \&quot;echo\&quot;.&quot;
+/bin/echo &quot;А эта строка выводится внешней командой the /bin/echo.&quot;
+</pre>
+          <br>
+          <br>
+
+          <p><a
+           name="KEYWORDREF"></a><em
+           class="FIRSTTERM">Ключевое слово</em> (keyword) -- это <span
+           class="emphasis"><em
+           class="EMPHASIS">зарезервированное</em></span> слово,
+          синтаксический элемент (token) или оператор. Ключевые слова
+          имеют специальное назначение для командного интерпретатора, и
+          фактически являются элементами синтаксиса языка командной
+          оболочки. В качестве примера можно привести <span
+           class="QUOTE">&quot;<span
+           class="TOKEN">for</span>&quot;</span>, <span
+           class="QUOTE">&quot;<span
+           class="TOKEN">while</span>&quot;</span>, <span
+           class="QUOTE">&quot;do&quot;</span>, <span
+           class="QUOTE">&quot;<span
+           class="TOKEN">!</span>&quot;</span>, которые являются
+          ключевыми (или зарезервированными) словами. Подобно <span
+           class="emphasis"><em
+           class="EMPHASIS">встроенным командам</em></span>, ключевые
+          слова жестко зашиты в Bash, но в отличие от встроенных
+          команд, ключевые слова не являются командами как таковыми,
+          хотя при этом могут являться их составной частью. <a
+           name="AEN5395"
+           href="#FTN.AEN5395"><span
+           class="footnote">[24]</span></a></p>
+
+          <div
+           class="VARIABLELIST">
+            <p><strong><a
+             name="INTIO1"></a>Ввод/вывод</strong></p>
+
+            <dl>
+              <dt><a
+               name="ECHOREF"></a><strong
+               class="COMMAND">echo</strong></dt>
+
+              <dd>
+                <p>выводит (на <tt
+                 class="FILENAME">stdout</tt>) выражение или содержимое
+                переменной (см. <a
+                 href="#EX9">Пример 4-1</a>).</p>
+<pre
+ class="PROGRAMLISTING">
+echo Hello
+echo $a
+</pre>
+                <br>
+                <br>
+
+                <p>Для вывода экранированных символов, <strong
+                 class="COMMAND">echo</strong> требует наличие ключа
+                <tt
+                 class="OPTION">-e</tt>. См. <a
+                 href="#ESCAPED">Пример 5-2</a>.</p>
+
+                <p>Обычно, командв <strong
+                 class="COMMAND">echo</strong> выводит в конце символ
+                перевода строки. Подавить вывод это символа можно
+                ключом <tt
+                 class="OPTION">-n</tt>.</p>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Команда <strong
+                         class="COMMAND">echo</strong> может
+                        использоваться для передачи информации по
+                        конвейеру другим командам.</p>
+<pre
+ class="PROGRAMLISTING">
+if echo &quot;$VAR&quot; | grep -q txt   # if [[ $VAR = *txt* ]]
+then
+  echo &quot;$VAR содержит подстроку \&quot;txt\&quot;&quot;
+fi
+</pre>
+                        <br>
+                        <br>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Кроме того, команда <strong
+                         class="COMMAND">echo</strong>, в комбинации с
+                        <a
+                         href="#COMMANDSUBREF">подстановкой команд</a>
+                        может учавствовать в операции присвоения
+                        значения переменной.</p>
+
+                        <p><tt
+                         class="USERINPUT"><strong>a=`echo
+                        &quot;HELLO&quot; | tr A-Z
+                        a-z`</strong></tt></p>
+
+                        <p>См. так же <a
+                         href="#LOWERCASE">Пример 12-15</a>, <a
+                         href="#EX57">Пример 12-2</a>, <a
+                         href="#MONTHLYPMT">Пример 12-32</a> и <a
+                         href="#BASE">Пример 12-33</a>.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <p>Следует запомнить, что команда <strong
+                 class="COMMAND">echo `command`</strong> удалит все
+                символы перевода строки, которые будут выведены
+                командой <tt
+                 class="REPLACEABLE"><em>command</em></tt>.</p>
+
+                <p>Переменная <a
+                 href="#IFSREF">$IFS</a> обычно содержит символ
+                перевода строки <span
+                 class="TOKEN">\n</span>, как один из вариантов <a
+                 href="#WHITESPACEREF">пробельного</a> символа. Bash
+                разобьет вывод команды <tt
+                 class="REPLACEABLE"><em>command</em></tt>, по
+                пробельным символам, на аргументы и передаст их команде
+                <strong
+                 class="COMMAND">echo</strong>, которая выведет эти
+                аргументы, разделенные пробелами.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>ls -l /usr/share/apps/kjezz/sounds</strong></tt>
+<tt
+ class=
+"COMPUTEROUTPUT">-rw-r--r--    1 root     root         1407 Nov  7  2000 reflect.au
+-rw-r--r--    1 root     root          362 Nov  7  2000 seconds.au</tt>
+
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>echo `ls -l /usr/share/apps/kjezz/sounds`</strong></tt>
+<tt
+ class=
+"COMPUTEROUTPUT">total 40 -rw-r--r-- 1 root root 716 Nov 7 2000 reflect.au -rw-r--r-- 1 root root 362 Nov 7 2000 seconds.au</tt>
+             
+</pre>
+                <br>
+                <br>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Это встроенная команда Bash и имеет внешний
+                        аналог <tt
+                         class="FILENAME">/bin/echo</tt>.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>type -a echo</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">echo is a shell builtin
+echo is /bin/echo</tt>
+             
+</pre>
+                        <br>
+                        <br>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </dd>
+
+              <dt><a
+               name="PRINTFREF"></a><strong
+               class="COMMAND">printf</strong></dt>
+
+              <dd>
+                <p><strong
+                 class="COMMAND">printf</strong> -- команда
+                форматированного вывода, расширенный вариант команды
+                <strong
+                 class="COMMAND">echo</strong> и ограниченный вариант
+                библиотечной функции <tt
+                 class="FUNCTION">printf()</tt> в языке C, к тому же
+                синтаксис их несколько отдичается друг от друга.</p>
+
+                <p><strong
+                 class="COMMAND">printf</strong> <tt
+                 class="REPLACEABLE"><em>format-string</em></tt>... <tt
+                 class="REPLACEABLE"><em>parameter</em></tt>...</p>
+
+                <p>Это встроенная команда Bash. Имеет внешний аналог
+                <tt
+                 class="FILENAME">/bin/printf</tt> или <tt
+                 class="FILENAME">/usr/bin/printf</tt>. За более
+                подробной информацией обращайтесь к страницам
+                справочного руководства <strong
+                 class="COMMAND">man 1 printf</strong> по системным
+                командам.</p>
+
+                <div
+                 class="CAUTION">
+                  <table
+                   class="CAUTION"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/caution.gif"
+                       hspace="5"
+                       alt="Caution"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Старые версии Bash могут не поддерживать
+                        команду <strong
+                         class="COMMAND">printf</strong>.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX47"></a>
+
+                  <p><strong>Пример 11-1. printf в
+                  действии</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# printf demo
+
+# От переводчика:
+# Считаю своим долгом напомнить, что в качестве разделителя дробной и целой
+# частей в вещественных числах, может использоваться символ &quot;запятая&quot;
+# (в русских локалях), поэтому данный сценарий может выдавать сообщение
+# об ошибке (у меня так и произошло) при выводе числа PI.
+# Тогда попробуйте заменить в определении числа PI десятичную точку
+# на запятую -- это должно помочь. ;-)
+
+PI=3,14159265358979
+DecimalConstant=31373
+Message1=&quot;Поздравляю,&quot;
+Message2=&quot;Землянин.&quot;
+
+echo
+
+printf &quot;Число пи с точностью до 2 знака после запятой = %1.2f&quot; $PI
+echo
+printf &quot;Число пи с точностью до 9 знака после запятой = %1.9f&quot; $PI  # Даже округляет правильно.
+
+printf &quot;\n&quot;                                  # Перевод строки,
+
+printf &quot;Константа = \t%d\n&quot; $DecimalConstant  # Вставлен символ табуляции (\t)
+
+printf &quot;%s %s \n&quot; $Message1 $Message2
+
+echo
+
+# ==========================================#
+# Эмуляция функции &#39;sprintf&#39; в языке C.
+# Запись форматированной строки в переменную.
+
+echo
+
+Pi12=$(printf &quot;%1.12f&quot; $PI)
+echo &quot;Число пи с точностью до 12 знака после запятой = $Pi12&quot;
+
+Msg=`printf &quot;%s %s \n&quot; $Message1 $Message2`
+echo $Msg; echo $Msg
+
+exit 0
+</pre>
+                </div>
+
+                <p>Одно из полезных применений команды <strong
+                 class="COMMAND">printf</strong> -- форматированный
+                вывод сообщений об ошибках</p>
+<pre
+ class="PROGRAMLISTING">
+E_BADDIR=65
+
+var=nonexistent_directory
+
+error()
+{
+  printf &quot;$@&quot; &gt;&amp;2
+  # Форматированный вывод аргументов на stderr.
+  echo
+  exit $E_BADDIR
+}
+
+cd $var || error $&quot;Невозможно перейти в каталог %s.&quot; &quot;$var&quot;
+
+# Спасибо S.C.
+</pre>
+                <br>
+                <br>
+              </dd>
+
+              <dt><a
+               name="READREF"></a><strong
+               class="COMMAND">read</strong></dt>
+
+              <dd>
+                <p><span
+                 class="QUOTE">&quot;Читает&quot;</span> значение
+                переменной с устройства стандартного ввода -- <tt
+                 class="FILENAME">stdin</tt>, в интерактивном режиме
+                это означает клавиатуру. Ключ <tt
+                 class="OPTION">-a</tt> позволяет записывать значения в
+                массивы (см. <a
+                 href="#EX67">Пример 25-3</a>).</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX36"></a>
+
+                  <p><strong>Пример 11-2. Ввод значений переменных с
+                  помощью read</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo -n &quot;дите значение переменной &#39;var1&#39;: &quot;
+# Ключ -n подавляет вывод символа перевода строки.
+
+read var1
+# Обратите внимание -- перед именем переменной отсутствует символ &#39;$&#39;.
+
+echo &quot;var1 = $var1&quot;
+
+
+echo
+
+# Одной командой &#39;read&#39; можно вводить несколько переменных.
+echo -n &quot;дите значения для переменных &#39;var2&#39; и &#39;var3&#39; (через пробел или табуляцию): &quot;
+read var2 var3
+echo &quot;var2 = $var2      var3 = $var3&quot;
+# Если было введено значение только одной переменной, то вторая останется &quot;пустой&quot;.
+
+exit 0
+</pre>
+                </div>
+
+                <p>Если команде <strong
+                 class="COMMAND">read</strong> не была передано ни
+                одной переменной, то ввод будет осуществлен в
+                переменную <a
+                 href="#REPLYREF">$REPLY</a>.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="READNOVAR"></a>
+
+                  <p><strong>Пример 11-3. Пример использования команды
+                  read без указания переменной для ввода</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo
+
+# -------------------------- #
+# Первый блок кода.
+echo -n &quot;Введите значение: &quot;
+read var
+echo &quot;\&quot;var\&quot; = &quot;$var&quot;&quot;
+# Здесь нет ничего неожиданного.
+# -------------------------- #
+
+echo
+
+echo -n &quot;Введите другое значение: &quot;
+read           #  Команда &#39;read&#39; употребляется без указания переменной для ввода,
+               #+ тем не менее...
+               #+ По-умолчанию ввод осуществляется в переменную $REPLY.
+var=&quot;$REPLY&quot;
+echo &quot;\&quot;var\&quot; = &quot;$var&quot;&quot;
+# Эта часть сценария эквивалентна первому блоку, выделенному выше.
+
+echo
+
+exit 0
+</pre>
+                </div>
+
+                <p>Обычно, при вводе в окне терминала с помощью команды
+                &quot;read&quot;, символ <tt
+                 class="USERINPUT"><strong>\</strong></tt> служит для
+                экранирования символа перевода строки. Ключ <tt
+                 class="OPTION">-r</tt> заставляет интерпретировать
+                символ <tt
+                 class="USERINPUT"><strong>\</strong></tt> как обычный
+                символ.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="READR"></a>
+
+                  <p><strong>Пример 11-4. Ввод многострочного текста с
+                  помощью read</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo
+
+echo &quot;Введите строку, завершающуюся символом \\, и нажмите ENTER.&quot;
+echo &quot;Затем введите вторую строку, и снова нажмите ENTER.&quot;
+read var1     # При чтении, символ &quot;\&quot; экранирует перевод строки.
+              #     первая строка \
+              #     вторая строка
+
+echo &quot;var1 = $var1&quot;
+#     var1 = первая строка вторая строка
+
+# После ввода каждой строки, завершающейся символом &quot;\&quot;,
+# вы можете продолжать ввод на другой строке.
+
+echo; echo
+
+echo &quot;Введите другую строку, завершающуюся символом \\, и нажмите ENTER.&quot;
+read -r var2  # Ключ -r заставляет команду &quot;read&quot; воспринимать &quot;\&quot;
+              # как обычный символ.
+              #     первая строка \
+
+echo &quot;var2 = $var2&quot;
+#     var2 = первая строка \
+
+# Ввод данных прекращается сразу же после первого нажатия на клавишу ENTER.
+
+echo 
+
+exit 0
+</pre>
+                </div>
+
+                <p>Команда <strong
+                 class="COMMAND">read</strong> имеет ряд очень
+                любопытных опций, которые позволяют выводить подсказку
+                - приглашение ко вводу (prompt), и даже читать данные
+                не дожидаясь нажатия на клавишу <strong
+                 class="KEYCAP">ENTER</strong>.</p>
+<pre
+ class="PROGRAMLISTING">
+# Чтение данных, не дожидаясь нажатия на клавишу ENTER.
+
+read -s -n1 -p &quot;Нажмите клавишу &quot; keypress
+echo; echo &quot;Была нажата клавиша &quot;\&quot;$keypress\&quot;&quot;.&quot;
+
+# -s   -- подавляет эхо-вывод, т.е. ввод с клавиатуры не отображается на экране.
+# -n N -- ввод завершается автоматически, сразу же после ввода N-го символа.
+# -p   -- задает вид строки подсказки - приглашения к вводу (prompt).
+
+# Использование этих ключей немного осложняется тем, что они должны следовать в определенном порядке.
+</pre>
+                <br>
+                <br>
+
+                <p>Ключ <tt
+                 class="OPTION">-n</tt>, кроме всего прочего, позволяет
+                команде <strong
+                 class="COMMAND">read</strong> обнаруживать нажатие
+                <span
+                 class="emphasis"><em
+                 class="EMPHASIS">курсорных</em></span> и некоторых
+                других служебных клавиш.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="ARROWDETECT"></a>
+
+                  <p><strong>Пример 11-5. Обнаружение нажатия на
+                  курсорные клавиши</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# arrow-detect.sh: Обнаружение нажатия на курсорные клавиши, и не только...
+# Спасибо Sandro Magi за то что показал мне -- как.
+
+# --------------------------------------------
+# Коды клавиш.
+arrowup=&#39;\[A&#39;
+arrowdown=&#39;\[B&#39;
+arrowrt=&#39;\[C&#39;
+arrowleft=&#39;\[D&#39;
+insert=&#39;\[2&#39;
+delete=&#39;\[3&#39;
+# --------------------------------------------
+
+SUCCESS=0
+OTHER=65
+
+echo -n &quot;Нажмите на клавишу...  &quot;
+# Может потребоваться нажать на ENTER, если была нажата клавиша
+# не входящая в список выше.
+read -n3 key                      # Прочитать 3 символа.
+
+echo -n &quot;$key&quot; | grep &quot;$arrowup&quot;  #Определение нажатой клавиши.
+if [ &quot;$?&quot; -eq $SUCCESS ]
+then
+  echo &quot;Нажата клавиша \&quot;.&quot;
+  exit $SUCCESS
+fi
+
+echo -n &quot;$key&quot; | grep &quot;$arrowdown&quot;
+if [ &quot;$?&quot; -eq $SUCCESS ]
+then
+  echo &quot;Нажата клавиша \&quot;
+  exit $SUCCESS
+fi
+
+echo -n &quot;$key&quot; | grep &quot;$arrowrt&quot;
+if [ &quot;$?&quot; -eq $SUCCESS ]
+then
+  echo &quot;Нажата клавиша \&quot;О\&quot;.&quot;
+  exit $SUCCESS
+fi
+
+echo -n &quot;$key&quot; | grep &quot;$arrowleft&quot;
+if [ &quot;$?&quot; -eq $SUCCESS ]
+then
+  echo &quot;Нажата клавиша \&quot;.&quot;
+  exit $SUCCESS
+fi
+
+echo -n &quot;$key&quot; | grep &quot;$insert&quot;
+if [ &quot;$?&quot; -eq $SUCCESS ]
+then
+  echo &quot;Нажата клавиша \&quot;Insert\&quot;.&quot;
+  exit $SUCCESS
+fi
+
+echo -n &quot;$key&quot; | grep &quot;$delete&quot;
+if [ &quot;$?&quot; -eq $SUCCESS ]
+then
+  echo &quot;Нажата клавиша \&quot;Delete\&quot;.&quot;
+  exit $SUCCESS
+fi
+
+
+echo &quot; Нажата какая-то другая клавиша.&quot;
+
+exit $OTHER
+
+#  Упражнения:
+#  ---------
+#  1) Упростите сценарий, заменив множество if-ов
+#+    одной конструкцией &#39;case&#39;.
+#  2) Добавьте определение нажатий на клавиши &quot;Home&quot;, &quot;End&quot;, &quot;PgUp&quot; и &quot;PgDn&quot;.
+</pre>
+                </div>
+
+                <p>Ключ <tt
+                 class="OPTION">-t</tt> позволяет ограничивать время
+                ожидания ввода командой <strong
+                 class="COMMAND">read</strong> (см. <a
+                 href="#TOUT">Пример 9-4</a>).</p>
+
+                <p>Команда <strong
+                 class="COMMAND">read</strong> может считывать значения
+                для переменных из файла, <a
+                 href="#IOREDIRREF">перенаправленного</a> на <tt
+                 class="FILENAME">stdin</tt>. Если файл содержит не
+                одну строку, то переменной будет присвоена только
+                первая строка. Если команде <strong
+                 class="COMMAND">read</strong> будет передано несколько
+                переменных, то первая строка файла будет разбита, по
+                пробелам, на несколько подстрок, каждая из которых
+                будет записана в свою переменную. Будьте осторожны!</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="READREDIR"></a>
+
+                  <p><strong>Пример 11-6. Чтение командой read из файла
+                  через <a
+                   href="#IOREDIRREF">перенаправление</a></strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+read var1 &lt;data-file
+echo &quot;var1 = $var1&quot;
+# Первая строка из &quot;data-file&quot; целиком записывается в переменную var1
+
+read var2 var3 &lt;data-file
+echo &quot;var2 = $var2   var3 = $var3&quot;
+# Обратите внимание!
+# Поведение команды &quot;read&quot; далеко от ожидаемого!
+# 1) Произошел возврат к началу файла.
+# 2) Вместо того, чтобы последовательно читать строки из файла,
+#    по числу переменных, первая строка файла была разбита на подстроки,
+#    разделенные пробелами, которые и были записаны в переменные.
+# 3) В последнюю переменную была записана вся оставшаяся часть строки.
+# 4) Если команде &quot;read&quot; будет передано большее число переменных, чем подстрок
+#    в первой строке файла, то последние переменные останутся &quot;пустыми&quot;.
+
+echo &quot;------------------------------------------------&quot;
+
+# Эта проблема легко разрешается с помощью цикла:
+while read line
+do
+  echo &quot;$line&quot;
+done &lt;data-file
+# Спасибо Heiner Steven за разъяснения.
+
+echo &quot;------------------------------------------------&quot;
+
+# Разбор строки, разделенной на поля
+# Для задания разделителя полей, используется переменная $IFS,
+
+echo &quot;Список всех пользователей:&quot;
+OIFS=$IFS; IFS=:       # В файле /etc/passwd, в качестве разделителя полей
+                       # используется символ &quot;:&quot; .
+while read name passwd uid gid fullname ignore
+do
+  echo &quot;$name ($fullname)&quot;
+done &lt;/etc/passwd      # перенаправление ввода.
+IFS=$OIFS              # Восстановление предыдущего состояния переменной $IFS.
+# Эту часть кода написал Heiner Steven.
+
+
+
+#  Если переменная $IFS устанавливается внутри цикла,
+#+ то отпадает необходимость сохранения ее первоначального значения
+#+ во временной переменной.
+#  Спасибо Dim Segebart за разъяснения.
+echo &quot;------------------------------------------------&quot;
+echo &quot;Список всех пользователей:&quot;
+
+while IFS=: read name passwd uid gid fullname ignore
+do
+  echo &quot;$name ($fullname)&quot;
+done &lt;/etc/passwd   # перенаправление ввода.
+
+echo
+echo &quot;Значение переменной \$IFS осталось прежним: $IFS&quot;
+
+exit 0
+</pre>
+                </div>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Передача информации, выводимой командой <a
+                         href="#ECHOREF">echo</a>, <a
+                         href="#PIPEREF">по конвейеру</a> команде
+                        <strong
+                         class="COMMAND">read</strong>, <a
+                         href="#BADREAD0">будет вызывать
+                        ошибку</a>.</p>
+
+                        <p>Тем не менее, передача данных по конвейеру
+                        от <a
+                         href="#CATREF">cat</a>, кажется
+                        срабатывает.</p>
+<pre
+ class="PROGRAMLISTING">
+cat file1 file2 |
+while read line
+do
+echo $line
+done
+</pre>
+                        <br>
+                        <br>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </dd>
+            </dl>
+          </div>
+
+          <div
+           class="VARIABLELIST">
+            <p><strong><a
+             name="INTFILESYSTEM1"></a>Файловая система</strong></p>
+
+            <dl>
+              <dt><strong
+               class="COMMAND">cd</strong></dt>
+
+              <dd>
+                <p>Уже знакомая нам команда <strong
+                 class="COMMAND">cd</strong>, изменяющая текущий
+                каталог, может быть использована в случаях, когда
+                некоторую команду необходимо запустить только находясь
+                в определенном каталоге.</p>
+<pre
+ class="PROGRAMLISTING">
+(cd /source/directory &amp;&amp; tar cf - . ) | (cd /dest/directory &amp;&amp; tar xpvf -)
+</pre>
+                [взято из <a
+                 href="#COXEX">упоминавшегося ранее</a> примера]<br>
+                <br>
+
+                <p>Команда <strong
+                 class="COMMAND">cd</strong> с ключом <tt
+                 class="OPTION">-P</tt> (physical) игнорирует
+                символические ссылки.</p>
+
+                <p>Команда <span
+                 class="QUOTE">&quot;<strong
+                 class="COMMAND">cd -</strong>&quot;</span> выполняет
+                переход в каталог <a
+                 href="#OLDPWD">$OLDPWD</a> -- предыдущий рабочий
+                каталог.</p>
+
+                <p><a
+                 name="DOUBLESLASHREF"></a></p>
+
+                <div
+                 class="CAUTION">
+                  <table
+                   class="CAUTION"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/caution.gif"
+                       hspace="5"
+                       alt="Caution"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Неожиданным образом выполняется команда
+                        <strong
+                         class="COMMAND">cd</strong>, если ей передать,
+                        в качестве каталога назначения, два слэша.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>cd //</strong></tt>
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>pwd</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">//</tt>
+             
+</pre>
+                        Само собой разумеется, это должен был бы быть
+                        каталог <tt
+                         class="COMPUTEROUTPUT">/</tt>. Эта проблема
+                        наблюдается как в командной строке, так и в
+                        сценариях.<br>
+                        <br>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </dd>
+
+              <dt><a
+               name="PWD2REF"></a><strong
+               class="COMMAND">pwd</strong></dt>
+
+              <dd>
+                <p>Выводит название текущего рабочего каталога (Print
+                Working Directory) (см. <a
+                 href="#EX37">Пример 11-7</a>). Кроме того, имя
+                текущего каталога хранится во внутренней переменной <a
+                 href="#PWDREF">$PWD</a>.</p>
+              </dd>
+
+              <dt><a
+               name="DIRSD"></a><strong
+               class="COMMAND">pushd</strong>, <strong
+               class="COMMAND">popd</strong>, <strong
+               class="COMMAND">dirs</strong></dt>
+
+              <dd>
+                <p>Этот набор команд является составной частью
+                механизма &quot;закладок&quot; на каталоги и позволяет
+                перемещаться по каталогам вперед и назад в заданном
+                порядке. Для хранения имен каталогов используется стек
+                (LIFO -- &quot;последний вошел, первый
+                вышел&quot;).</p>
+
+                <p><a
+                 name="PUSHDREF"></a><tt
+                 class="USERINPUT"><strong>pushd dir-name</strong></tt>
+                -- помещает имя текущего каталога в стек и осуществляет
+                переход в каталог <tt
+                 class="REPLACEABLE"><em>dir-name</em></tt>.</p>
+
+                <p><a
+                 name="POPDREF"></a><strong
+                 class="COMMAND">popd</strong> -- выталкивает,
+                находящееся на вершине стека, имя каталога и
+                одновременно осуществляет переход в каталог,
+                оказавшийся на врешине стека.</p>
+
+                <p><strong
+                 class="COMMAND">dirs</strong> -- выводит содержимое
+                стека каталогов (сравните с переменной <a
+                 href="#DIRSTACKREF">$DIRSTACK</a>). В случае успеха,
+                обе команды -- <strong
+                 class="COMMAND">pushd</strong> и <strong
+                 class="COMMAND">popd</strong> автоматически вызывают
+                <strong
+                 class="COMMAND">dirs</strong>.</p>
+
+                <p>Эти команды могут оказаться весьма полезными, когда
+                в сценарии нужно производить частую смену каталогов, но
+                при этом не хочется жестко &quot;зашивать&quot; имена
+                каталогов. Обратите внимание: содержимое стека
+                каталогов постоянно хранится в переменной-массиве --
+                <tt
+                 class="VARNAME">$DIRSTACK</tt>.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX37"></a>
+
+                  <p><strong>Пример 11-7. Смена текущего
+                  каталога</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+dir1=/usr/local
+dir2=/var/spool
+
+pushd $dir1
+# Команда &#39;dirs&#39; будет вызвана автоматически (на stdout будет выведено содержимое стека).
+echo &quot;Выполнен переход в каталог `pwd`.&quot; # Обратные одиночные кавычки.
+
+# Теперь можно выполнить какие либо действия в каталоге &#39;dir1&#39;.
+pushd $dir2
+echo &quot;Выполнен переход в каталог `pwd`.&quot;
+
+# Теперь можно выполнить какие либо действия в каталоге &#39;dir2&#39;.
+echo &quot;На вершине стека находится: $DIRSTACK.&quot;
+popd
+echo &quot;Возврат в каталог `pwd`.&quot;
+
+# Теперь можно выполнить какие либо действия в каталоге &#39;dir1&#39;.
+popd
+echo &quot;Возврат в первоначальный рабочий каталог `pwd`.&quot;
+
+exit 0
+</pre>
+                </div>
+              </dd>
+            </dl>
+          </div>
+
+          <div
+           class="VARIABLELIST">
+            <p><strong><a
+             name="INTVAR1"></a>Переменные</strong></p>
+
+            <dl>
+              <dt><a
+               name="LETREF"></a><strong
+               class="COMMAND">let</strong></dt>
+
+              <dd>
+                <p>Команда <strong
+                 class="COMMAND">let</strong> производит арифметические
+                операции над переменными. В большинстве случаев, ее
+                можно считать упрощенным вариантом команды <a
+                 href="#EXPRREF">expr</a>.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX46"></a>
+
+                  <p><strong>Пример 11-8. Команда let, арифметические
+                  операции.</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+echo
+
+let a=11          # То же, что и &#39;a=11&#39;
+let a=a+5         # Эквивалентно &quot;a = a + 5&quot;
+                  # (Двойные кавычки и дополнительные пробелы делают код более удобочитаемым)
+echo &quot;11 + 5 = $a&quot;
+
+let &quot;a &lt;&lt;= 3&quot;     # Эквивалентно  let &quot;a = a &lt;&lt; 3&quot;
+echo &quot;\&quot;\$a\&quot; (=16) после сдвига влево на 3 разряда = $a&quot;
+
+let &quot;a /= 4&quot;      # Эквивалентно let &quot;a = a / 4&quot;
+echo &quot;128 / 4 = $a&quot;
+
+let &quot;a -= 5&quot;      # Эквивалентно let &quot;a = a - 5&quot;
+echo &quot;32 - 5 = $a&quot;
+
+let &quot;a = a * 10&quot;  # Эквивалентно let &quot;a = a * 10&quot;
+echo &quot;27 * 10 = $a&quot;
+
+let &quot;a %= 8&quot;      # Эквивалентно let &quot;a = a % 8&quot;
+echo &quot;270 mod 8 = $a  (270 / 8 = 33, остаток = $a)&quot;
+
+echo
+
+exit 0
+</pre>
+                </div>
+              </dd>
+
+              <dt><a
+               name="EVALREF"></a><strong
+               class="COMMAND">eval</strong></dt>
+
+              <dd>
+                <p><tt
+                 class="USERINPUT"><strong>eval arg1 [arg2] ...
+                [argN]</strong></tt></p>
+
+                <p>Транслирует список аргументов, из списка, в
+                команды.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX43"></a>
+
+                  <p><strong>Пример 11-9. Демонстрация команды
+                  eval</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+y=`eval ls -l`  # Подобно y=`ls -l`
+echo $y         # но символы перевода строки не выводятся, поскольку имя переменной не в кавычках.
+echo
+echo &quot;$y&quot;       # Если имя переменной записать в кавычках -- символы перевода строки сохраняются.
+
+echo; echo
+
+y=`eval df`     # Аналогично y=`df`
+echo $y         # но без символов перевода строки.
+
+#  Когда производится подавление вывода символов LF (перевод строки), то анализ
+#+ результатов различными утилитами, такими как awk, можно сделать проще.
+
+exit 0
+</pre>
+                </div>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX44"></a>
+
+                  <p><strong>Пример 11-10. Принудительное завершение
+                  сеанса</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+y=`eval ps ax | sed -n &#39;/ppp/p&#39; | awk &#39;{ print $1 }&#39;`
+# Выяснить PID процесса &#39;ppp&#39;.
+
+kill -9 $y   # &quot;Прихлопнуть&quot; его
+
+# Предыдущие строки можно заменить одной строкой
+#  kill -9 `ps ax | awk &#39;/ppp/ { print $1 }&#39;
+
+
+chmod 666 /dev/ttyS3
+# Завершенный, по сигналу SIGKILL, ppp изменяет права доступа
+# к последовательному порту. Вернуть их в первоначальное состояние.
+
+rm /var/lock/LCK..ttyS3   # Удалить lock-файл последовательного порта.
+
+exit 0
+</pre>
+                </div>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="ROT14"></a>
+
+                  <p><strong>Пример 11-11. Шифрование по алгоритму
+                  <span
+                   class="QUOTE">&quot;rot13&quot;</span></strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# Реализация алгоритма шифрования &quot;rot13&quot; с помощью &#39;eval&#39;.
+# Сравните со сценарием &quot;rot13.sh&quot;.
+
+setvar_rot_13()              # Криптование по алгоритму &quot;rot13&quot;
+{
+  local varname=$1 varvalue=$2
+  eval $varname=&#39;$(echo &quot;$varvalue&quot; | tr a-z n-za-m)&#39;
+}
+
+
+setvar_rot_13 var &quot;foobar&quot;   # Пропустить слово &quot;foobar&quot; через rot13.
+echo $var                    # sbbone
+
+echo $var | tr a-z n-za-m    # foobar
+                             # Расшифровывание.
+
+# Пример предоставил Stephane Chazelas.
+
+exit 0
+</pre>
+                </div>
+
+                <p>Rory Winston представил следующий пример, как
+                образец практического использования команды <strong
+                 class="COMMAND">eval</strong>.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EVALEX"></a>
+
+                  <p><strong>Пример 11-12. Замена имени переменной на
+                  ее значение, в исходном тексте программы на языке
+                  Perl, с помощью eval</strong></p>
+<pre
+ class="PROGRAMLISTING">
+В программе &quot;test.pl&quot;, на языке Perl:
+        ...
+        my $WEBROOT = &lt;WEBROOT_PATH&gt;;
+        ...
+
+Эта попытка подстановки значения переменной вместо ее имени:
+        $export WEBROOT_PATH=/usr/local/webroot
+        $sed &#39;s/&lt;WEBROOT_PATH&gt;/$WEBROOT_PATH/&#39; &lt; test.pl &gt; out
+
+даст такой результат:
+        my $WEBROOT = $WEBROOT_PATH;
+
+Тем не менее:
+        $export WEBROOT_PATH=/usr/local/webroot
+        $eval sed &#39;s/&lt;WEBROOT_PATH&gt;/$WEBROOT_PATH/&#39; &lt; test.pl &gt; out
+#        ====
+
+Этот вариант дал желаемый результат -- имя переменной, в тексте программы,
+благополучно было заменено на ее значение:
+        my $WEBROOT = /usr/local/webroot
+</pre>
+                </div>
+
+                <div
+                 class="CAUTION">
+                  <table
+                   class="CAUTION"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/caution.gif"
+                       hspace="5"
+                       alt="Caution"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Команда <strong
+                         class="COMMAND">eval</strong> может быть
+                        небезопасна. Если существует приемлемая
+                        альтернатива, то желательно воздерживаться от
+                        использования <strong
+                         class="COMMAND">eval</strong>. Так, <tt
+                         class="USERINPUT"><strong>eval
+                        $COMMANDS</strong></tt> исполняет код, который
+                        записан в переменную <tt
+                         class="REPLACEABLE"><em>COMMANDS</em></tt>,
+                        которая, в свою очередь, может содержать весьма
+                        неприятные сюрпризы, например <strong
+                         class="COMMAND">rm -rf *</strong>.
+                        Использование команды <strong
+                         class="COMMAND">eval</strong>, для исполнения
+                        кода неизвестного происхождения, крайне
+                        опасно.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </dd>
+
+              <dt><a
+               name="SETREF"></a><strong
+               class="COMMAND">set</strong></dt>
+
+              <dd>
+                <p>Команда <strong
+                 class="COMMAND">set</strong> изменяет значения
+                внутренних переменных сценария. Она может
+                использоваться для переключения <a
+                 href="#OPTIONSREF">опций (ключей, флагов)</a>,
+                определяющих поведение скрипта. Еще одно применение --
+                сброс/установка <a
+                 href="#POSPARAMREF">позиционных параметров
+                (аргументов)</a>, значения которых будут восприняты как
+                результат работы команды (<tt
+                 class="USERINPUT"><strong>set
+                `command`</strong></tt>).</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX34"></a>
+
+                  <p><strong>Пример 11-13. Установка значений
+                  аргументов с помощью команды set</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# script &quot;set-test&quot;
+
+# Вызовите сценарий с тремя аргументами командной строки,
+# например: &quot;./set-test one two three&quot;.
+
+echo
+echo &quot;Аргументы перед вызовом set \`uname -a\` :&quot;
+echo &quot;Аргумент #1 = $1&quot;
+echo &quot;Аргумент #2 = $2&quot;
+echo &quot;Аргумент #3 = $3&quot;
+
+
+set `uname -a` # Изменение аргументов
+               # значения которых берутся из результата работы `uname -a`
+
+echo $_
+
+echo &quot;Аргументы после вызова set \`uname -a\` :&quot;
+#  $1, $2, $3 и т.д. будут переустановлены в соответствии с выводом
+#+ команды `uname -a`
+echo &quot;Поле #1 &#39;uname -a&#39; = $1&quot;
+echo &quot;Поле #2 &#39;uname -a&#39; = $2&quot;
+echo &quot;Поле #3 &#39;uname -a&#39; = $3&quot;
+echo ---
+echo $_        # ---
+echo
+
+exit 0
+</pre>
+                </div>
+
+                <p>Вызов <strong
+                 class="COMMAND">set</strong> без параметров просто
+                выводит список инициализированных переменных <a
+                 href="#ENVREF">окружения</a>.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>set</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">AUTHORCOPY=/home/bozo/posts
+ BASH=/bin/bash
+ BASH_VERSION=$&#39;2.05.8(1)-release&#39;
+ ...
+ XAUTHORITY=/home/bozo/.Xauthority
+ _=/etc/bashrc
+ variable22=abc
+ variable23=xzy</tt>
+             
+</pre>
+                <br>
+                <br>
+
+                <p>Если команда <strong
+                 class="COMMAND">set</strong> используется с ключом
+                <span
+                 class="QUOTE">&quot;<tt
+                 class="OPTION">--</tt>&quot;</span>, после которого
+                следует переменная, то значение переменной переносится
+                в позиционные параметры (аргументы). Если имя
+                переменной отсутствует, то эта команда приводит к
+                сбросу позиционных параметров.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="SETPOS"></a>
+
+                  <p><strong>Пример 11-14. Изменение значений
+                  позиционных параметров (аргументов)</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+variable=&quot;one two three four five&quot;
+
+set -- $variable
+# Значения позиционных параметров берутся из &quot;$variable&quot;.
+
+first_param=$1
+second_param=$2
+shift; shift        # сдвиг двух первых параметров.
+remaining_params=&quot;$*&quot;
+
+echo
+echo &quot;первый параметр = $first_param&quot;            # one
+echo &quot;второй параметр = $second_param&quot;           # two
+echo &quot;остальные параметры = $remaining_params&quot;   # three four five
+
+echo; echo
+
+# Снова.
+set -- $variable
+first_param=$1
+second_param=$2
+echo &quot;первый параметр = $first_param&quot;             # one
+echo &quot;второй параметр = $second_param&quot;            # two
+
+# ======================================================
+
+set --
+# Позиционные параметры сбрасываются, если не задано имя переменной.
+
+first_param=$1
+second_param=$2
+echo &quot;первый параметр = $first_param&quot;            # (пустое значение)
+echo &quot;второй параметр = $second_param&quot;           # (пустое значение)
+
+exit 0
+</pre>
+                </div>
+
+                <p>См. так же <a
+                 href="#EX22A">Пример 10-2</a> и <a
+                 href="#EX33A">Пример 12-40</a>.</p>
+              </dd>
+
+              <dt><a
+               name="UNSETREF"></a><strong
+               class="COMMAND">unset</strong></dt>
+
+              <dd>
+                <p>Команда <strong
+                 class="COMMAND">unset</strong> удаляет переменную,
+                фактически -- устанавливает ее значение в <span
+                 class="emphasis"><em
+                 class="EMPHASIS">null</em></span>. Обратите внимание:
+                эта команда не может сбрасывать позиционные параметры
+                (аргументы).</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>unset PATH</strong></tt>
+
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>echo $PATH</strong></tt>
+<tt
+ class="COMPUTEROUTPUT"></tt>
+<tt
+ class="PROMPT">bash$</tt>
+</pre>
+                <br>
+                <br>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="UNS"></a>
+
+                  <p><strong>Пример 11-15. <span
+                   class="QUOTE">&quot;Сброс&quot;</span>
+                  переменной</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# unset.sh: Сброс переменной.
+
+variable=hello                       # Инициализация.
+echo &quot;variable = $variable&quot;
+
+unset variable                       # Сброс.
+                                     # Тот же эффект дает   variable=
+echo &quot;(unset) variable = $variable&quot;  # $variable = null.
+
+exit 0
+</pre>
+                </div>
+              </dd>
+
+              <dt><a
+               name="EXPORTREF"></a><strong
+               class="COMMAND">export</strong></dt>
+
+              <dd>
+                <p>Команда <strong
+                 class="COMMAND">export</strong> экспортирует
+                переменную, делая ее доступной дочерним процессам. К
+                сожалению, невозможно экспортировать переменную
+                родительскому процессу. В качестве примера
+                использования команды <strong
+                 class="COMMAND">export</strong> можно привести <a
+                 href="#FILESREF1">сценарии инициализации системы</a>,
+                вызываемые в процессе загрузки, которые инициализируют
+                и экспортируют <a
+                 href="#ENVREF">переменные окружения</a>, делая их
+                доступными для пользовательских процессов.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="COLTOTALER3"></a>
+
+                  <p><strong>Пример 11-16. Передача переменных во
+                  вложенный сценарий <a
+                   href="#AWKREF">awk</a>, с помощью
+                  export</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+# Еще одна версия сценария &quot;column totaler&quot; (col-totaler.sh)
+# который суммирует заданную колонку (чисел) в заданном файле.
+# Здесь используются переменные окружения, которые передаются сценарию &#39;awk&#39;.
+
+ARGS=2
+E_WRONGARGS=65
+
+if [ $# -ne &quot;$ARGS&quot; ] # Проверка количества входных аргументов.
+then
+   echo &quot;Порядок использования: `basename $0` filename column-number&quot;
+   exit $E_WRONGARGS
+fi
+
+filename=$1
+column_number=$2
+
+#===== До этой строки идентично первоначальному варианту сценария =====#
+
+export column_number
+# Экспорт номера столбца.
+
+
+# Начало awk-сценария.
+# ------------------------------------------------
+awk &#39;{ total += $ENVIRON[&quot;column_number&quot;]
+}
+END { print total }&#39; $filename
+# ------------------------------------------------
+# Конец awk-сценария.
+
+
+# Спасибо Stephane Chazelas.
+
+exit 0
+</pre>
+                </div>
+
+                <div
+                 class="TIP">
+                  <table
+                   class="TIP"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/tip.gif"
+                       hspace="5"
+                       alt="Tip"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Допускается объединение инициализации и
+                        экспорта переменной в одну инструкцию: <strong
+                         class="COMMAND">export var1=xxx</strong>.</p>
+
+                        <p>Однако, как заметил Greg Keraunen, в
+                        некоторых ситуациях такая комбинация может
+                        давать иной результат, нежели раздельная
+                        инициализация и экспорт.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>export var=(a b); echo ${var[0]}</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">(a b)</tt>
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>var=(a b); export var; echo ${var[0]}</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">a</tt>
+             
+</pre>
+                        <br>
+                        <br>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">declare</strong>, <strong
+               class="COMMAND">typeset</strong></dt>
+
+              <dd>
+                <p>Команды <a
+                 href="#DECLAREREF">declare</a> и <a
+                 href="#DECLAREREF">typeset</a> задают и/или
+                накладывают ограничения на переменные.</p>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">readonly</strong></dt>
+
+              <dd>
+                <p>То же самое, что и <a
+                 href="#DECLAREREF">declare -r</a>, делает переменную
+                доступной только для чтения, т.е. переменная становится
+                подобна константе. При попытке изменить значение такой
+                переменной выводится сообщение об ошибке. Эта команда
+                может расцениваться как квалификатор типа <strong
+                 class="COMMAND">const</strong> в языке C.</p>
+              </dd>
+
+              <dt><a
+               name="GETOPTSX"></a><strong
+               class="COMMAND">getopts</strong></dt>
+
+              <dd>
+                <p>Мощный инструмент, используемый для разбора
+                аргументов, передаваемых сценарию из командной строки.
+                Это встроенная команда Bash, но имеется и ее
+                &quot;внешний&quot; аналог <a
+                 href="#GETOPTY">/usr/bin/getopt</a>, а так же
+                программистам, пишущим на C, хорошо знакома похожая
+                библиотечная функция <strong
+                 class="COMMAND">getopt</strong>. Она позволяет
+                обрабатывать серии опций, объединенных в один аргумент
+                <a
+                 name="AEN5877"
+                 href="#FTN.AEN5877"><span
+                 class="footnote">[25]</span></a> и дополнительные
+                аргументы, передаваемые сценарию (например, <tt
+                 class="USERINPUT"><strong>scriptname -abc -e
+                /usr/local</strong></tt>).</p>
+
+                <p>С командой <strong
+                 class="COMMAND">getopts</strong> очень тесно
+                взаимосвязаны скрытые переменные. <tt
+                 class="VARNAME">$OPTIND</tt> -- указатель на аргумент
+                (<em
+                 class="WORDASWORD">OPTion INDex</em>) и <tt
+                 class="VARNAME">$OPTARG</tt> (<em
+                 class="WORDASWORD">OPTion ARGument</em>) --
+                дополнительный аргумент опции. Символ двоеточия,
+                следующий за именем опции, указывает на то, что она
+                имеет дополнительный аргумент.</p>
+
+                <p>Обычно <strong
+                 class="COMMAND">getopts</strong> упаковывается в цикл
+                <a
+                 href="#WHILELOOPREF">while</a>, в каждом проходе цикла
+                извлекается очередная опция и ее аргумент (если он
+                имеется), обрабатывается, затем уменьшается на 1
+                скрытая переменная <tt
+                 class="VARNAME">$OPTIND</tt> и выполняется переход к
+                началу новой итерации.</p>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <ol
+                         type="1">
+                          <li>
+                            <p>Опциям (ключам), передаваемым в сценарий
+                            из командной строки, должен предшествовать
+                            символ &quot;минус&quot; (<tt
+                             class="OPTION">-</tt>) или
+                            &quot;плюс&quot; (<tt
+                             class="OPTION">+</tt>). Этот префикс (<tt
+                             class="OPTION">-</tt> или <tt
+                             class="OPTION">+</tt>) позволяет <strong
+                             class="COMMAND">getopts</strong> отличать
+                            опции (ключи) от прочих аргументов.
+                            Фактически, <strong
+                             class="COMMAND">getopts</strong> не будет
+                            обрабатывать аргументы, если им не
+                            предшествует символ <tt
+                             class="OPTION">-</tt> или <tt
+                             class="OPTION">+</tt>, выделение опций
+                            будет прекращено как только встретится
+                            первый аргумент.</p>
+                          </li>
+
+                          <li>
+                            <p>Типичная конструкция цикла <strong
+                             class="COMMAND">while</strong> с <strong
+                             class="COMMAND">getopts</strong> несколько
+                            отличается от стандартной из-за отсутствия
+                            квадратных скобок, проверяющих условие
+                            продолжения цикла.</p>
+                          </li>
+
+                          <li>
+                            <p>Пример <strong
+                             class="COMMAND">getopts</strong>,
+                            заменившей устаревшую, и не такую мощную,
+                            внешнюю команду <a
+                             href="#GETOPTY">getopt</a>.</p>
+                          </li>
+                        </ol>
+                        <br>
+                        <br>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+<pre
+ class="PROGRAMLISTING">
+while getopts &quot;:abcde:fg&quot; Option
+# Начальное объявление цикла анализа опций.
+# a, b, c, d, e, f, g -- это возможные опции (ключи).
+# Символ : после опции &#39;e&#39; указывает на то, что с данной опцией может идти
+# дополнительный аргумент.
+do
+  case $Option in
+    a ) # Действия, предусмотренные опцией &#39;a&#39;.
+    b ) # Действия, предусмотренные опцией &#39;b&#39;.
+    ...
+    e)  # Действия, предусмотренные опцией &#39;e&#39;, а так же необходимо обработать $OPTARG,
+        # в которой находится дополнительный аргумент этой опции.
+    ...
+    g ) # Действия, предусмотренные опцией &#39;g&#39;.
+  esac
+done
+shift $(($OPTIND - 1))
+# Перейти к следующей опции.
+
+# Все не так сложно, как может показаться ;-)
+             
+</pre>
+                <br>
+                <br>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX33"></a>
+
+                  <p><strong>Пример 11-17. Прием опций/аргументов,
+                  передаваемых сценарию, с помощью getopts</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# ex33.sh
+
+# Обработка опций командной строки с помощью &#39;getopts&#39;.
+
+# Попробуйте вызвать этот сценарий как:
+# &#39;scriptname -mn&#39;
+# &#39;scriptname -oq qOption&#39; (qOption может быть любой произвольной строкой.)
+# &#39;scriptname -qXXX -r&#39;
+#
+# &#39;scriptname -qr&#39;    - Неожиданный результат: &quot;r&quot; будет воспринят как дополнительный аргумент опции &quot;q&quot;
+# &#39;scriptname -q -r&#39;  - То же самое, что и выше
+#  Если опция ожидает дополнительный аргумент (&quot;flag:&quot;), то следующий параметр
+#  в командной строке, будет воспринят как дополнительный аргумент этой опции.
+
+NO_ARGS=0
+E_OPTERROR=65
+
+if [ $# -eq &quot;$NO_ARGS&quot; ]  # Сценарий вызван без аргументов?
+then
+  echo &quot;Порядок использования: `basename $0` options (-mnopqrs)&quot;
+  exit $E_OPTERROR        # Если аргументы отсутствуют -- выход с сообщением
+                          # о порядке использования скрипта
+fi
+# Порядок использования: scriptname -options
+# Обратите внимание: дефис (-) обязателен
+
+
+while getopts &quot;:mnopq:rs&quot; Option
+do
+echo $OPTIND
+  case $Option in
+    m     ) echo &quot;Сценарий #1: ключ -m-&quot;;;
+    n | o ) echo &quot;Сценарий #2: ключ -$Option-&quot;;;
+    p     ) echo &quot;Сценарий #3: ключ -p-&quot;;;
+    q     ) echo &quot;Сценарий #4: ключ -q-, с аргументом \&quot;$OPTARG\&quot;&quot;;;
+    # Обратите внимание: с ключом &#39;q&#39; должен передаваться дополнительный аргумент,
+    # в противном случае отработает выбор &quot;по-умолчанию&quot;.
+    r | s ) echo &quot;Сценарий #5: ключ -$Option-&quot;&#39;&#39;;;
+    *     ) echo &quot;Выбран недопустимый ключ.&quot;;;   # ПО-УМОЛЧАНИЮ
+  esac
+done
+shift $(($OPTIND - 1))
+# Переход к очередному параметру командной строки.
+
+exit 0
+</pre>
+                </div>
+              </dd>
+            </dl>
+          </div>
+
+          <div
+           class="VARIABLELIST">
+            <p><strong><a
+             name="INTSCRBEH1"></a>Управление сценарием</strong></p>
+
+            <dl>
+              <dt><a
+               name="SOURCEREF"></a><strong
+               class="COMMAND">source</strong>, <span
+               class="TOKEN">.</span> (<a
+               href="#DOTREF">точка</a>)</dt>
+
+              <dd>
+                <p>Когда эта команда вызывается из командной строки, то
+                это приводит к запуску указанного сценария. Внутри
+                сценария, команда <tt
+                 class="USERINPUT"><strong>source
+                file-name</strong></tt> загружает файл <tt
+                 class="FILENAME">file-name</tt>. Таким образом она
+                очень напоминает директиву препроцессора языка C/C++ --
+                &quot;#include&quot;. Может найти применение в
+                ситуациях, когда несколько сценариев пользуются одним
+                файлом с данными или библиотекой функций.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX38"></a>
+
+                  <p><strong>Пример 11-18. <span
+                   class="QUOTE">&quot;Подключение&quot;</span>
+                  внешнего файла</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+. data-file    # Загрузка файла с данными.
+# Тот же эффект дает &quot;source data-file&quot;, но этот вариант более переносим.
+
+#  Файл &quot;data-file&quot; должен находиться в текущем каталоге,
+#+ т.к. путь к нему не указан.
+
+# Теперь, выведем некоторые переменные из этого файла.
+
+echo &quot;variable1 (из data-file) = $variable1&quot;
+echo &quot;variable3 (из data-file) = $variable3&quot;
+
+let &quot;sum = $variable2 + $variable4&quot;
+echo &quot;Сумма variable2 + variable4 (из data-file) = $sum&quot;
+echo &quot;message1 (из data-file):  \&quot;$message1\&quot;&quot;
+# Обратите внимание:             кавычки экранированы
+
+print_message Вызвана функция вывода сообщений, находящаяся в data-file.
+
+
+exit 0
+</pre>
+
+                  <p>Файл <tt
+                   class="FILENAME">data-file</tt> для <a
+                   href="#EX38">Пример 11-18</a>, представленного выше,
+                  должен находиться в том же каталоге.</p>
+<pre
+ class="PROGRAMLISTING">
+# Этот файл подключается к сценарию.
+# Подключаемые файлы могут содержать об&quot;явления переменных, функций и т.п.
+# Загружаться может командой &#39;source&#39; или &#39;.&#39; .
+
+# Инициализация некоторых переменных.
+
+variable1=22
+variable2=474
+variable3=5
+variable4=97
+
+message1=&quot;Привет! Как поживаете?&quot;
+message2=&quot;Досвидания!&quot;
+
+print_message ()
+{
+# Вывод сообщения переданного в эту функцию.
+
+  if [ -z &quot;$1&quot; ]
+  then
+    return 1
+    # Ошибка, если аргумент отсутствует.
+  fi
+
+  echo
+
+  until [ -z &quot;$1&quot; ]
+  do
+    # Цикл по всем аргументам функции.
+    echo -n &quot;$1&quot;
+    # Вывод аргумента с подавлением символа перевода строки.
+    echo -n &quot; &quot;
+    # Вставить пробел, для разделения выводимых аргументов.
+    shift
+    # Переход к следующему аргументу.
+  done  
+
+  echo
+
+  return 0
+} 
+</pre>
+                </div>
+
+                <p>Сценарий может подключить даже самого себя, только
+                этому едва ли можно найти какое либо практическое
+                применение.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="SELFSOURCE"></a>
+
+                  <p><strong>Пример 11-19. Пример (бесполезный)
+                  сценария, который подключает себя
+                  самого.</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# self-source.sh: сценарий, который рекурсивно подключает себя самого.&quot;
+# Из &quot;Бестолковые трюки&quot;, том II.
+
+MAXPASSCNT=100    # Максимальное количество проходов.
+
+echo -n  &quot;$pass_count  &quot;
+#  На первом проходе выведет два пробела,
+#+ т.к. $pass_count еще не инициализирована.
+
+let &quot;pass_count += 1&quot;
+#  Операция инкремента неинициализированной переменной $pass_count
+#+ на первом проходе вполне допустима.
+#  Этот прием срабатывает в Bash и pdksh, но,
+#+ при переносе сценария в другие командные оболочки,
+#+ он может оказаться неработоспособным или даже опасным.
+#  Лучшим выходом из положения, будет присвоить переменной $pass_count
+#+ значение 0, если она неинициализирована.
+
+while [ &quot;$pass_count&quot; -le $MAXPASSCNT ]
+do
+  . $0   # &quot;Подключение&quot; самого себя.
+         # ./$0 (истинная рекурсия) в данной ситуации не сработает.
+done  
+
+#  Происходящее здесь фактически не является рекурсией как таковой,
+#+ т.к. сценарий как бы &quot;расширяет&quot; себя самого
+#+ (добавляя новый блок кода)
+#+ на каждом проходе цикла &#39;while&#39;,
+#+ командой &#39;source&#39; в строке 22.
+#
+#  Само собой разумеется, что первая строка (#!), вновь подключенного сценария,
+#+ интерпретируется как комментарий, а не как начало нового сценария (sha-bang)
+
+echo
+
+exit 0   # The net effect is counting from 1 to 100.
+         # Very impressive.
+
+# Упражнение:
+# ----------
+# Напишите сценарий, который использовал бы этот трюк для чего либо полезного.
+</pre>
+                </div>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">exit</strong></dt>
+
+              <dd>
+                <p>Безусловное завершение работы сценария. Команде
+                <strong
+                 class="COMMAND">exit</strong> можно передать целое
+                число, которое будет возвращено вызывающему процессу
+                как <a
+                 href="#EXITSTATUSREF">код завершения</a>. Вообще,
+                считается хорошей практикой завершать работу сценария,
+                за исключением простейших случаев, командой <tt
+                 class="USERINPUT"><strong>exit 0</strong></tt>, чтобы
+                проинформировать родительский процесс об успешном
+                завершении.</p>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Если сценарий завершается командой <strong
+                         class="COMMAND">exit</strong> без аргументов,
+                        то в качестве кода завершения сценария
+                        принимается код завершения последней
+                        выполненной команды, не считая самой команды
+                        <strong
+                         class="COMMAND">exit</strong>.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </dd>
+
+              <dt><a
+               name="EXECREF"></a><strong
+               class="COMMAND">exec</strong></dt>
+
+              <dd>
+                <p>Это встроенная команда интерпретатора shell,
+                заменяет текущий процесс новым процессом, запускаемым
+                командой exec. Обычно, когда командный интерпретатор
+                встречает эту команду, то он <a
+                 href="#FORKREF">порождает</a> дочерний процесс, чтобы
+                исполнить команду. При использовании встроенной команды
+                <strong
+                 class="COMMAND">exec</strong>, оболочка не порождает
+                еще один процесс, а заменяет текущий процесс другим.
+                Для сценария это означает его завершение сразу после
+                исполнения команды <strong
+                 class="COMMAND">exec</strong>. По этой причине, если
+                вам встретится <strong
+                 class="COMMAND">exec</strong> в сценарии, то, скорее
+                всего это будет последняя команда в сценарии.</p>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="EX54"></a>
+
+                  <p><strong>Пример 11-20. Команда exec</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+exec echo &quot;Завершение \&quot;$0\&quot;.&quot;   # Это завершение работы сценария.
+
+# ----------------------------------
+# Следующие ниже строки никогда не будут исполнены
+echo &quot;Эта строка никогда не будет выведена на экран.&quot;
+
+exit 99                       #  Сценарий завершит работу не здесь.
+                              #  Проверьте код завершения сценария
+                              #+ командой &#39;echo $?&#39;.
+                              #  Он точно не будет равен 99.
+</pre>
+                </div>
+
+                <div
+                 class="EXAMPLE">
+                  <a
+                   name="SELFEXEC"></a>
+
+                  <p><strong>Пример 11-21. Сценарий, который запускает
+                  себя самого</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# self-exec.sh
+
+echo
+
+echo &quot;Эта строка в сценарии единственная, но она продолжает выводиться раз за разом.&quot;
+echo &quot;PID остался равным $$.&quot;
+#     Демонстрация того, что команда exec не порождает дочерний процесс.
+
+echo &quot;==================== Для завершения - нажмите Ctl-C ====================&quot;
+
+sleep 1
+
+exec $0   #  Запуск очередного экземпляра этого же сценария
+          #+ который замещает предыдущий.
+
+echo &quot;Эта строка никогда не будет выведена!&quot;  # Почему?
+
+exit 0
+</pre>
+                </div>
+
+                <p>Команда <strong
+                 class="COMMAND">exec</strong> так же может
+                использоваться для перенаправления. Так, команда <tt
+                 class="USERINPUT"><strong>exec
+                &lt;zzz-file</strong></tt> заменит стандартное
+                устройство ввода (<tt
+                 class="FILENAME">stdin</tt>) файлом <tt
+                 class="FILENAME">zzz-file</tt> (см. <a
+                 href="#REDIR1">Пример 16-1</a>).</p>
+
+                <div
+                 class="NOTE">
+                  <table
+                   class="NOTE"
+                   width="90%"
+                   border="0">
+                    <tr>
+                      <td
+                       width="25"
+                       align="center"
+                       valign="top"><img
+                       src="misc/abs-book/images/note.gif"
+                       hspace="5"
+                       alt="Note"></td>
+
+                      <td
+                       align="left"
+                       valign="top">
+                        <p>Ключ <tt
+                         class="OPTION">-exec</tt> команды <a
+                         href="#FINDREF">find</a> -- это не то же
+                        самое, что встроенная команда <strong
+                         class="COMMAND">exec</strong>.</p>
+                      </td>
+                    </tr>
+                  </table>
+                </div>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">shopt</strong></dt>
+
+              <dd>
+                <p>Эта команда позволяет изменять ключи (опции)
+                оболочки на лету (см. <a
+                 href="#AL">Пример 23-1</a> и <a
+                 href="#UNAL">Пример 23-2</a>). Ее часто можно
+                встретить в <a
+                 href="#FILESREF1">стартовых файлах</a>, но может
+                использоваться и в обычных сценариях. Требует Bash <a
+                 href="#BASH2REF">версии 2</a> или выше.</p>
+<pre
+ class="PROGRAMLISTING">
+shopt -s cdspell
+# Исправляет незначительные орфографические ошибки в именах каталогов в команде &#39;cd&#39;
+
+cd /hpme  # Oops! Имелось ввиду &#39;/home&#39;.
+pwd       # /home
+          # Shell исправил опечатку.
+</pre>
+                <br>
+                <br>
+              </dd>
+            </dl>
+          </div>
+
+          <div
+           class="VARIABLELIST">
+            <p><strong><a
+             name="INTCOMMAND1"></a>Команды</strong></p>
+
+            <dl>
+              <dt><a
+               name="TRUEREF"></a><strong
+               class="COMMAND">true</strong></dt>
+
+              <dd>
+                <p>Команда возвращает код завершения -- <span
+                 class="RETURNVALUE">ноль</span>, или успешное
+                завершение, и ничего больше.</p>
+<pre
+ class="PROGRAMLISTING">
+# Бесконечный цикл
+while true   # вместо &quot;:&quot;
+do
+   operation-1
+   operation-2
+   ...
+   operation-n
+   # Следует предусмотреть способ завершения цикла.
+done
+</pre>
+                <br>
+                <br>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">false</strong></dt>
+
+              <dd>
+                <p>Возвращает <a
+                 href="#EXITSTATUSREF">код завершения</a>,
+                свидетельствующий о неудаче, и ничего более.</p>
+<pre
+ class="PROGRAMLISTING">
+# Цикл, который никогда не будет исполнен
+while false
+do
+   # Следующий код не будет исполнен никогда.
+   operation-1
+   operation-2
+   ...
+   operation-n
+done  
+</pre>
+                <br>
+                <br>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">type [cmd]</strong></dt>
+
+              <dd>
+                <p>Очень похожа на внешнюю команду <a
+                 href="#WHICHREF">which</a>, <strong
+                 class="COMMAND">type cmd</strong> выводит полный путь
+                к <span
+                 class="QUOTE">&quot;cmd&quot;</span>. В отличие от
+                <strong
+                 class="COMMAND">which</strong>, <strong
+                 class="COMMAND">type</strong> является внутренней
+                командой Bash. С опцией <tt
+                 class="OPTION">-a</tt> не только различает ключевые
+                слова и внутренние команды, но и определяет
+                местоположение внешних команд с именами, идентичными
+                внутренним.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>type &#39;[&#39;</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">[ is a shell builtin</tt>
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>type -a &#39;[&#39;</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">[ is a shell builtin
+ [ is /usr/bin/[</tt>
+             
+</pre>
+                <br>
+                <br>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">hash [cmds]</strong></dt>
+
+              <dd>
+                <p>Запоминает путь к заданной команде (в хэш-таблице
+                командной оболочки), благодаря чему, при повторном
+                обращении к ней, оболочка или сценарий уже не будет
+                искать путь к команде в <tt
+                 class="VARNAME">$PATH</tt>. При вызове команды <strong
+                 class="COMMAND">hash</strong> без аргументов, просто
+                выводит содержимое хэш-таблицы. С ключом <tt
+                 class="OPTION">-r</tt> -- очищает хэш-таблицу.</p>
+              </dd>
+
+              <dt><strong
+               class="COMMAND">help</strong></dt>
+
+              <dd>
+                <p><strong
+                 class="COMMAND">help</strong> COMMAND -- выводит
+                краткую справку по использованию внутренней команды
+                COMMAND. Аналог команды <a
+                 href="#WHATISREF">whatis</a>, только для внутренних
+                команд.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>help exit</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">exit: exit [n]
+    Exit the shell with a status of N.  If N is omitted, the exit status
+    is that of the last command executed.</tt>
+             
+</pre>
+                <br>
+                <br>
+              </dd>
+            </dl>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="AEN6110"></a>11.1. Команды управления заданиями</h2>
+
+            <p>Некоторые из нижеследующих команд принимают, в качестве
+            аргумента, <span
+             class="QUOTE">&quot;идентификатор задания&quot;</span>.
+            См. <a
+             href="#JOBIDTABLE">таблицу</a> в конце главы.</p>
+
+            <div
+             class="VARIABLELIST">
+              <dl>
+                <dt><strong
+                 class="COMMAND">jobs</strong></dt>
+
+                <dd>
+                  <p>Выводит список заданий, исполняющихся в фоне.
+                  Команда <strong
+                   class="COMMAND">ps</strong> более информативна.</p>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p><span
+                           class="emphasis"><em
+                           class="EMPHASIS">Задания</em></span> и <span
+                           class="emphasis"><em
+                           class="EMPHASIS">процессы</em></span> легко
+                          спутать. Некоторые <a
+                           href="#BUILTINREF">внутренние команды</a>,
+                          такие как <strong
+                           class="COMMAND">kill</strong>, <strong
+                           class="COMMAND">disown</strong> и <strong
+                           class="COMMAND">wait</strong> принимают в
+                          качестве параметра либо номер задания, либо
+                          номер процесса. Команды <strong
+                           class="COMMAND">fg</strong>, <strong
+                           class="COMMAND">bg</strong> и <strong
+                           class="COMMAND">jobs</strong> принимают
+                          только номер задания.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>sleep 100 &amp;</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">[1] 1384</tt>
+
+<tt
+ class="PROMPT">bash $</tt> <tt
+ class="USERINPUT"><strong>jobs</strong></tt>
+<tt
+ class=
+"COMPUTEROUTPUT">[1]+  Running                 sleep 100 &amp;</tt>
+</pre>
+                          <br>
+                          <br>
+
+                          <p><span
+                           class="QUOTE">&quot;1&quot;</span> -- это
+                          номер задания (управление заданиями
+                          осуществляет текущий командный
+                          интерпретатор), а <span
+                           class="QUOTE">&quot;1384&quot;</span> --
+                          номер процесса (управление процессами
+                          осуществляется системой). Завершить
+                          задание/процесс (&quot;прихлопнуть&quot;)
+                          можно либо командой <strong
+                           class="COMMAND">kill %1</strong>, либо
+                          <strong
+                           class="COMMAND">kill 1384</strong>.</p>
+
+                          <p><span
+                           class="emphasis"><em
+                           class="EMPHASIS">Спасибо
+                          S.C.</em></span></p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">disown</strong></dt>
+
+                <dd>
+                  <p>Удаляет задание из таблицы активных заданий
+                  командной оболочки.</p>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">fg</strong>, <strong
+                 class="COMMAND">bg</strong></dt>
+
+                <dd>
+                  <p>Команда <strong
+                   class="COMMAND">fg</strong> переводит задание из
+                  фона на передний план. Команда <strong
+                   class="COMMAND">bg</strong> перезапускает
+                  приостановленное задание в фоновом режиме. Если эти
+                  команды были вызваны без указания номера задания, то
+                  они воздействуют на текущее исполняющееся
+                  задание.</p>
+                </dd>
+
+                <dt><a
+                 name="WAITREF"></a><strong
+                 class="COMMAND">wait</strong></dt>
+
+                <dd>
+                  <p>Останавливает работу сценария до тех пор пока не
+                  будут завершены все фоновые задания или пока не будет
+                  завершено задание/процесс с указанным номером
+                  задания/PID процесса. Возвращает <a
+                   href="#EXITSTATUSREF">код завершения</a> указанного
+                  задания/процесса.</p>
+
+                  <p>Вы можете использовать команду <strong
+                   class="COMMAND">wait</strong> для предотвращения
+                  преждевременного завершения сценария до того, как
+                  завершит работу фоновое задание.</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX39"></a>
+
+                    <p><strong>Пример 11-22. Ожидание завершения
+                    процесса перед тем как продолжить
+                    работу</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+
+ROOT_UID=0   # Только пользователь с $UID = 0 имеет привилегии root.
+E_NOTROOT=65
+E_NOPARAMS=66
+
+if [ &quot;$UID&quot; -ne &quot;$ROOT_UID&quot; ]
+then
+  echo &quot;Для запуска этого сценария вы должны обладать привилегиями root.&quot;
+  exit $E_NOTROOT
+fi
+
+if [ -z &quot;$1&quot; ]
+then
+  echo &quot;Порядок использования: `basename $0` имя-файла&quot;
+  exit $E_NOPARAMS
+fi
+
+
+echo &quot;Обновляется база данных &#39;locate&#39;...&quot;
+echo &quot;Это может занять продолжительное время.&quot;
+updatedb /usr &amp;     # Должна запускаться с правами root.
+
+wait
+# В этом месте сценарий приостанавливает свою работу до тех пор, пока не отработает &#39;updatedb&#39;.
+# Желательно обновить базу данных перед тем как выполнить поиск файла.
+
+locate $1
+
+# В худшем случае, без команды wait, сценарий завершил бы свою работу до того,
+# как завершила бы работу утилита &#39;updatedb&#39;,
+# сделав из нее &quot;осиротевший&quot; процесс.
+
+exit 0
+</pre>
+                  </div>
+
+                  <p>Команда <strong
+                   class="COMMAND">wait</strong> может принимать
+                  необязательный параметр -- номер задания/процесса,
+                  например, <strong
+                   class="COMMAND">wait %1</strong> или <strong
+                   class="COMMAND">wait $PPID</strong>. См. таблицу <a
+                   href="#JOBIDTABLE">идентификации заданий</a>.</p>
+
+                  <p><a
+                   name="WAITHANG"></a></p>
+
+                  <div
+                   class="TIP">
+                    <table
+                     class="TIP"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/tip.gif"
+                         hspace="5"
+                         alt="Tip"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>При запуске команды в фоне из сценария
+                          может возникнуть ситуация, когда сценарий
+                          приостанавливает свою работу до тех пор, пока
+                          не будет нажата клавиша <strong
+                           class="KEYCAP">ENTER</strong>. Это, кажется,
+                          происходит с командами, делающими вывод на
+                          <tt
+                           class="FILENAME">stdout</tt>. Такое
+                          поведение может вызывать раздражение у
+                          пользователя.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# test.sh
+
+ls -l &amp;
+echo &quot;Done.&quot;
+</pre>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>./test.sh</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">Done.
+ [bozo@localhost test-scripts]$ total 1
+ -rwxr-xr-x    1 bozo     bozo           34 Oct 11 15:09 test.sh
+ _</tt>
+              
+</pre>
+                          <br>
+                          <br>
+
+                          <p>Разместив команду <strong
+                           class="COMMAND">wait</strong>, после запуска
+                          фонового задания, можно предотвратить такое
+                          поведение сценария.</p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# test.sh
+
+ls -l &amp;
+echo &quot;Done.&quot;
+wait
+</pre>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>./test.sh</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">Done.
+ [bozo@localhost test-scripts]$ total 1
+ -rwxr-xr-x    1 bozo     bozo           34 Oct 11 15:09 test.sh</tt>
+              
+</pre>
+                          <a
+                           href="#IOREDIRREF">Перенаправление</a>
+                          вывода в файл или даже на устройство <tt
+                           class="FILENAME">/dev/null</tt> также
+                          снимает эту проблему. <br>
+                          <br>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">suspend</strong></dt>
+
+                <dd>
+                  <p>Действует аналогично нажатию на комбинацию клавиш
+                  <strong
+                   class="KEYCAP">Control+</strong>-<strong
+                   class="KEYCAP">Z</strong>, за исключением того, что
+                  она приостанавливает работу командной оболочки.</p>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">logout</strong></dt>
+
+                <dd>
+                  <p>Завершает сеанс работы командной оболочки, можно
+                  указать необязательный <a
+                   href="#EXITSTATUSREF">код завершения</a>.</p>
+                </dd>
+
+                <dt><a
+                 name="TIMESREF"></a><strong
+                 class="COMMAND">times</strong></dt>
+
+                <dd>
+                  <p>Выдает статистику исполнения команд в единицах
+                  системного времени, в следующем виде:</p>
+<pre
+ class="SCREEN">
+<tt
+ class="COMPUTEROUTPUT">0m0.020s 0m0.020s</tt>
+</pre>
+                  Имеет весьма ограниченную сферу применения, так как
+                  сценарии крайне редко подвергаются
+                  профилированию.<br>
+                  <br>
+                </dd>
+
+                <dt><a
+                 name="KILLREF"></a><strong
+                 class="COMMAND">kill</strong></dt>
+
+                <dd>
+                  <p>Принудительное завершение процесса путем передачи
+                  ему соответствующего сигнала (см. <a
+                   href="#KILLPROCESS">Пример 13-4</a>).</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="SELFDESTRUCT"></a>
+
+                    <p><strong>Пример 11-23. Сценарий, завершающий себя
+                    сам с помощью команды kill</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# self-destruct.sh
+
+kill $$  # Сценарий завершает себя сам.
+         # Надеюсь вы еще не забыли, что &quot;$$&quot; -- это PID сценария.
+
+echo &quot;Эта строка никогда не будет выведена.&quot;
+# Вместо него на stdout будет выведено сообщение &quot;Terminated&quot;.
+
+exit 0
+
+#  Какой код завершения вернет сценарий?
+#
+# sh self-destruct.sh
+# echo $?
+# 143
+#
+# 143 = 128 + 15
+#             сигнал TERM
+</pre>
+                  </div>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>Команда <tt
+                           class="USERINPUT"><strong>kill
+                          -l</strong></tt> выведет список всех <a
+                           href="#SIGNALD">сигналов</a>. Команда <tt
+                           class="USERINPUT"><strong>kill
+                          -9</strong></tt> -- это <span
+                           class="QUOTE">&quot;жесткий
+                          kill&quot;</span>, она используется, как
+                          правило, для завершения зависших процессов,
+                          которые упорно отказываются
+                          &quot;умирать&quot;, отвергая простой <strong
+                           class="COMMAND">kill</strong>. Иногда
+                          достаточно подать команду <tt
+                           class="USERINPUT"><strong>kill
+                          -15</strong></tt>. <span
+                           class=
+                          "QUOTE">&quot;Процессы-зомби&quot;</span>,
+                          т.е. процессы, <a
+                           href="#FORKREF">&quot;родители&quot;</a>
+                          которых уже завершили работу, не могут быть
+                          &quot;убиты&quot; таким способом (невозможно
+                          &quot;убить&quot; &quot;мертвого&quot;), рано
+                          или поздно с ними &quot;расправится&quot;
+                          процесс <strong
+                           class="COMMAND">init</strong>.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">command</strong></dt>
+
+                <dd>
+                  <p>Директива <strong
+                   class="COMMAND">command COMMAND</strong> запрещает
+                  использование псевдонимов и функций с именем <span
+                   class="QUOTE">&quot;COMMAND&quot;</span>.</p>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>Это одна из трех директив командного
+                          интерпретатора, которая влияет на обработку
+                          команд. Другие две -- <a
+                           href="#BLTREF">builtin</a> и <a
+                           href="#ENABLEREF">enable</a>.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><a
+                 name="BLTREF"></a><strong
+                 class="COMMAND">builtin</strong></dt>
+
+                <dd>
+                  <p>Конструкция <strong
+                   class="COMMAND">builtin BUILTIN_COMMAND</strong>
+                  запускает <a
+                   href="#BUILTINREF">внутреннюю команду</a> <span
+                   class="QUOTE">&quot;BUILTIN_COMMAND&quot;</span>, на
+                  время запрещая использование функций и внешних
+                  системных команд с тем же именем.</p>
+                </dd>
+
+                <dt><a
+                 name="ENABLEREF"></a><strong
+                 class="COMMAND">enable</strong></dt>
+
+                <dd>
+                  <p>Либо запрещает, либо разрешает вызов внутренних
+                  команд. Например, <strong
+                   class="COMMAND">enable -n kill</strong> запрещает
+                  использование внутренней команды <a
+                   href="#KILLREF">kill</a>, в результате, когда
+                  интерпретатор встретит команду <strong
+                   class="COMMAND">kill</strong>, то он вызовет внешнюю
+                  команду <strong
+                   class="COMMAND">kill</strong>, т.е. <tt
+                   class="FILENAME">/bin/kill</tt>.</p>
+
+                  <p><a
+                   name="ENABLEREF1"></a>Команда <tt
+                   class="OPTION">enable -a</tt> выведет список всех
+                  внутренних команд, указывая для каждой --
+                  действительно ли она разрешена. Команда <tt
+                   class="OPTION">enable -f filename</tt> загрузит <a
+                   href="#BUILTINREF">внутренние команды</a> как
+                  разделяемую библиотеку (DLL) из указанного объектного
+                  файла. <a
+                   name="AEN6343"
+                   href="#FTN.AEN6343"><span
+                   class="footnote">[26]</span></a>.</p>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">autoload</strong></dt>
+
+                <dd>
+                  <p>Перенесена в Bash из <span
+                   class="emphasis"><em
+                   class="EMPHASIS">ksh</em></span>. Если функция
+                  объявлена как <strong
+                   class="COMMAND">autoload</strong>, то она будет
+                  загружена из внешнего файла в момент первого вызова.
+                  <a
+                   name="AEN6361"
+                   href="#FTN.AEN6361"><span
+                   class="footnote">[27]</span></a> Такой прием
+                  помогает экономить системные ресурсы.</p>
+
+                  <p>Обратите внимание: <strong
+                   class="COMMAND">autoload</strong> не является частью
+                  ядра Bash. Ее необходимо загрузить с помощью команды
+                  <strong
+                   class="COMMAND">enable -f</strong> (см. выше).</p>
+                </dd>
+              </dl>
+            </div>
+
+            <div
+             class="TABLE">
+              <a
+               name="JOBIDTABLE"></a>
+
+              <p><strong>Таблица 11-1. Идентификация
+              заданий</strong></p>
+
+              <table
+               border="1"
+               class="CALSTABLE">
+                <thead>
+                  <tr>
+                    <th
+                     align="left"
+                     valign="top">Нотация</th>
+
+                    <th
+                     align="left"
+                     valign="top">Описание</th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">%N</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">Номер задания [N]</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">%S</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">Вызов (командная строка) задания,
+                    которая начинается со строки <span
+                     class="emphasis"><em
+                     class="EMPHASIS">S</em></span></td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">%?S</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">Вызов (командная строка) задания,
+                    которая содержит строку <span
+                     class="emphasis"><em
+                     class="EMPHASIS">S</em></span></td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">%%</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top"><span
+                     class="QUOTE">&quot;текущее&quot;</span> задание
+                    (последнее задание приостановленное на переднем
+                    плане или запущенное в фоне)</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">%+</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top"><span
+                     class="QUOTE">&quot;текущее&quot;</span> задание
+                    (последнее задание приостановленное на переднем
+                    плане или запущенное в фоне)</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">%-</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">Последнее задание</td>
+                  </tr>
+
+                  <tr>
+                    <td
+                     align="left"
+                     valign="top"><tt
+                     class="OPTION">$!</tt></td>
+
+                    <td
+                     align="left"
+                     valign="top">Последний фоновый процесс</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div
+         class="CHAPTER">
+          <hr>
+
+          <h1><a
+           name="EXTERNAL"></a>Глава 12. Внешние команды, программы и
+          утилиты</h1>
+
+          <p>Благодаря стандартизации набора команд UNIX-систем,
+          сценарии, на языке командной оболочки, могут быть легко
+          перенесены из системы в систему практически без изменений.
+          Мощь сценариев складывется из наборв системных команд и
+          директив командной оболочки с простыми программными
+          конструкциями.</p>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="BASIC"></a>12.1. Базовые команды</h2>
+
+            <div
+             class="VARIABLELIST">
+              <p><strong><a
+               name="BASICCOMMANDS1"></a>Первая команда, с которой
+              сталкиваются новички</strong></p>
+
+              <dl>
+                <dt><a
+                 name="LSREF"></a><strong
+                 class="COMMAND">ls</strong></dt>
+
+                <dd>
+                  <p>Команда вывода <span
+                   class="QUOTE">&quot;списка&quot;</span> файлов.
+                  Многие недооценивают всю мощь этой скромной команды.
+                  Например, с ключом <tt
+                   class="OPTION">-R</tt>, рекурсивный обход дерева
+                  каталогов, командв <strong
+                   class="COMMAND">ls</strong> выводит содержимое
+                  каталогов в виде древовидной структуры. Вот еще ряд
+                  любопытных ключей (опций) команды <strong
+                   class="COMMAND">ls</strong>: <tt
+                   class="OPTION">-S</tt> -- сортировка по размеру
+                  файлов, <tt
+                   class="OPTION">-t</tt> -- сортировка по времени
+                  последней модификации файла и <tt
+                   class="OPTION">-i</tt> -- выводит список файлов с их
+                  inode (см. <a
+                   href="#IDELETE">Пример 12-3</a>).</p>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX40"></a>
+
+                    <p><strong>Пример 12-1. Создание оглавления диска
+                    для записи <span
+                     class="ABBREV">CDR</span>, с помощью команды
+                    ls</strong></p>
+<pre
+ class="PROGRAMLISTING">
+#!/bin/bash
+# burn-cd.sh
+# Сценарий, автоматизирующий процесс прожигания CDR.
+
+
+SPEED=2          # Если ваше &quot;железо&quot; поддерживает более высокую скорость записи -- можете увеличить этот параметр
+IMAGEFILE=cdimage.iso
+CONTENTSFILE=contents
+DEFAULTDIR=/opt  # В этом каталоге находятся файлы, которые будут записаны на CD.
+                 # Каталог должен существовать.
+
+# Используется пакет &quot;cdrecord&quot; от Joerg Schilling.
+# (http://www.fokus.gmd.de/nthp/employees/schilling/cdrecord.html)
+
+#  Если этот сценарий предполагается запускать с правами обычного пользователя,
+#+ то необходимо установить флаг suid на cdrecord
+#+ (chmod u+s /usr/bin/cdrecord, эта команда должна быть выполнена root-ом).
+
+if [ -z &quot;$1&quot; ]
+then
+  IMAGE_DIRECTORY=$DEFAULTDIR
+  # Каталог по-умолчанию, если иной каталог не задан из командной строки.
+else
+    IMAGE_DIRECTORY=$1
+fi
+
+# Создать файл &quot;table of contents&quot;.
+ls -lRF $IMAGE_DIRECTORY &gt; $IMAGE_DIRECTORY/$CONTENTSFILE
+# Ключ &quot;l&quot; -- &quot;расширенный&quot; формат вывода списка файлов.
+# Ключ &quot;R&quot; -- рекурсивный обход дерева каталогов.
+# Ключ &quot;F&quot; -- добавляет дополнительные метки к именам файлов (к именам каталогов добавдяет оконечный символ /).
+echo &quot;Создано оглавление.&quot;
+
+# Создать iso-образ.
+mkisofs -r -o $IMAGFILE $IMAGE_DIRECTORY
+echo &quot;Создан iso-образ файловой системы ISO9660 ($IMAGEFILE).&quot;
+
+# &quot;Прожигание&quot; CDR.
+cdrecord -v -isosize speed=$SPEED dev=0,0 $IMAGEFILE
+echo &quot;Запись диска.&quot;
+echo &quot;Наберитесь терпения, это может потребовать некоторого времени.&quot;
+
+exit 0
+</pre>
+                  </div>
+                </dd>
+
+                <dt><a
+                 name="CATREF"></a><strong
+                 class="COMMAND">cat</strong>, <strong
+                 class="COMMAND">tac</strong></dt>
+
+                <dd>
+                  <p><strong
+                   class="COMMAND">cat</strong> -- это акроним от <em
+                   class="WORDASWORD">concatenate</em>, выводит
+                  содержимое списка файлов на <tt
+                   class="FILENAME">stdout</tt>. Для объединения файлов
+                  в один файл может использоваться в комбинации с
+                  операциями перенаправления (<span
+                   class="TOKEN">&gt;</span> или <span
+                   class="TOKEN">&gt;&gt;</span>).</p>
+<pre
+ class="PROGRAMLISTING">
+cat filename cat file.1 file.2 file.3 &gt; file.123
+</pre>
+                  Ключ <tt
+                   class="OPTION">-n</tt>, команды <strong
+                   class="COMMAND">cat</strong>, вставляет порядковые
+                  номера строк в выходном файле. Ключ <tt
+                   class="OPTION">-b</tt> -- нумерут только не пустые
+                  строки. Ключ <tt
+                   class="OPTION">-v</tt> выводит непечатаемые символы
+                  в нотации с символом <span
+                   class="TOKEN">^</span>. Ключ <tt
+                   class="OPTION">-s</tt> заменяет несколько пустых
+                  строк, идущих подряд, одной пустой строкой.<br>
+                  <br>
+
+                  <p>см. также <a
+                   href="#LNUM">Пример 12-21</a> and <a
+                   href="#ROT13">Пример 12-17</a>.</p>
+
+                  <p><strong
+                   class="COMMAND">tac</strong> -- выводит содержимое
+                  файлов в обратном порядке, от последней строки к
+                  первой.</p>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">rev</strong></dt>
+
+                <dd>
+                  <p>выводит все строки файла задом наперед на <tt
+                   class="FILENAME">stdout</tt>. Это не то же самое,
+                  что <strong
+                   class="COMMAND">tac</strong>. Команда <strong
+                   class="COMMAND">rev</strong> сохраняет порядок
+                  следования строк, но переворачивает каждую строку
+                  задом наперед.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>cat file1.txt</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">Это строка 1.
+ Это строка 2.</tt>
+
+
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>tac file1.txt</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">Это строка 2.
+ Это строка 1.</tt>
+
+
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>rev file1.txt</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">.1 акортс отЭ
+ .2 акортс отЭ</tt>
+             
+</pre>
+                  <br>
+                  <br>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">cp</strong></dt>
+
+                <dd>
+                  <p>Команда копирования файлов. <tt
+                   class="USERINPUT"><strong>cp file1
+                  file2</strong></tt> скопирует <tt
+                   class="FILENAME">file1</tt> в <tt
+                   class="FILENAME">file2</tt>, перезаписав <tt
+                   class="FILENAME">file2</tt> если он уже существовал
+                  (см. <a
+                   href="#EX42">Пример 12-5</a>).</p>
+
+                  <div
+                   class="TIP">
+                    <table
+                     class="TIP"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/tip.gif"
+                         hspace="5"
+                         alt="Tip"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>С флагами <tt
+                           class="OPTION">-a</tt> и <tt
+                           class="OPTION">-r</tt>, или <tt
+                           class="OPTION">-R</tt> выполняет копирование
+                          дерева каталогов.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">mv</strong></dt>
+
+                <dd>
+                  <p>Команда <span
+                   class="emphasis"><em
+                   class="EMPHASIS">перемещения</em></span> файла.
+                  Эквивалентна комбинации команд <strong
+                   class="COMMAND">cp</strong> и <strong
+                   class="COMMAND">rm</strong>. Может использоваться
+                  для перемещения большого количества файлов или для
+                  переименования каталогов. Примеры использования
+                  команды <strong
+                   class="COMMAND">mv</strong> вы найдете в <a
+                   href="#RFE">Пример 9-17</a> и <a
+                   href="#RN">Пример A-3</a>.</p>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>При использовании в неинтерактивных
+                          сценариях, команде <strong
+                           class="COMMAND">mv</strong> следует
+                          передавать ключ <tt
+                           class="OPTION">-f</tt>, чтобы подавить
+                          запрос подтверждения на перемещение.</p>
+
+                          <p>Если в качестве каталога назначения указан
+                          существующий каталог, то перемещаемый каталог
+                          становится подкаталогом каталога
+                          назначения..</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class=
+"USERINPUT"><strong>mv source_directory target_directory</strong></tt>
+
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>ls -lF target_directory</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">total 1
+ drwxrwxr-x    2 bozo  bozo      1024 May 28 19:20 source_directory/</tt>
+             
+</pre>
+                          <br>
+                          <br>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">rm</strong></dt>
+
+                <dd>
+                  <p>Удаляет (remove) файл(ы). Ключ <tt
+                   class="OPTION">-f</tt> позволяет удалять даже файлы
+                  ТОЛЬКО-ДЛЯ-ЧТЕНИЯ и подавляет запрос подтверждения на
+                  удаление.</p>
+
+                  <div
+                   class="WARNING">
+                    <table
+                     class="WARNING"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/warning.gif"
+                         hspace="5"
+                         alt="Warning"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>С ключом <tt
+                           class="OPTION">-r</tt>, удаляет все файлы в
+                          подкаталогах.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">rmdir</strong></dt>
+
+                <dd>
+                  <p>Удаляет каталог. Удаляемый каталог не должен
+                  содержать файлов, включая <a
+                   name="DOTFILESREF"></a> <span
+                   class="QUOTE">&quot;скрытые файлы&quot;</span>, <a
+                   name="AEN6567"
+                   href="#FTN.AEN6567"><span
+                   class="footnote">[28]</span></a> иначе каталог не
+                  будет удален.</p>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">mkdir</strong></dt>
+
+                <dd>
+                  <p>Создает новый каталог. <tt
+                   class="USERINPUT"><strong>mkdir -p
+                  project/programs/December</strong></tt> создает
+                  каталог с заданным именем в требуемом каталоге. Ключ
+                  <tt
+                   class="REPLACEABLE"><em>-p</em></tt> позволяет
+                  создавать промежуточные родительские каталоги.</p>
+                </dd>
+
+                <dt><a
+                 name="CHMODREF"></a><strong
+                 class="COMMAND">chmod</strong></dt>
+
+                <dd>
+                  <p>Изменяет атрибуты существующего файла (см. <a
+                   href="#EX44">Пример 11-10</a>).</p>
+<pre
+ class="PROGRAMLISTING">
+chmod +x filename
+# Делает файл &quot;filename&quot; доступным для исполнения всем пользователям.
+
+chmod u+s filename
+# Устанавливается бит &quot;suid&quot; для &quot;filename&quot;.
+# В результате, любой пользователь сможет запустить &quot;filename&quot; с привилегиями владельца файла.
+# (Это не относится к файлам-сценариям на языке командной оболочки.)
+</pre>
+                  <br>
+                  <br>
+<pre
+ class="PROGRAMLISTING">
+chmod 644 filename
+# Выдает право на запись/чтение владельцу файла &quot;filename&quot;, и право на чтение
+# всем остальным
+# (восьмеричное число).
+</pre>
+                  <br>
+                  <br>
+<pre
+ class="PROGRAMLISTING">
+chmod 1777 directory-name
+# Выдает право на чтение, запись и исполнение файлов в каталоге,
+# дополнительно устанавливает &quot;sticky bit&quot;.
+# Это означает, что удалять файлы в этом каталоге могут только владельцы файлов,
+# владелец каталога и, само собой разумеется, root.
+</pre>
+                  <br>
+                  <br>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">chattr</strong></dt>
+
+                <dd>
+                  <p>Изменяет атрибуты файла. Эта команда подобна
+                  команде <strong
+                   class="COMMAND">chmod</strong>, за исключением
+                  синтаксиса вызова, и работает исключительно в
+                  файловой системе <span
+                   class="emphasis"><em
+                   class="EMPHASIS">ext2</em></span>.</p>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">ln</strong></dt>
+
+                <dd>
+                  <p>Создает ссылку на существующий файл. Чаще всего
+                  используется с ключом <tt
+                   class="OPTION">-s</tt>, что означает символическую,
+                  или <span
+                   class="QUOTE">&quot;мягкую&quot;</span> (symbolic
+                  или <span
+                   class="QUOTE">&quot;soft&quot;</span>) ссылку.
+                  Позволяет задавать несколько имен одному и тому же
+                  файлу и превосходная альтернатива
+                  &quot;псевдонимам&quot; (алиасам) (см. <a
+                   href="#EX18">Пример 4-6</a>).</p>
+
+                  <p><tt
+                   class="USERINPUT"><strong>ln -s oldfile
+                  newfile</strong></tt> создает ссылку, с именем <tt
+                   class="FILENAME">newfile</tt>, на существующий файл
+                  <tt
+                   class="FILENAME">oldfile</tt>, .</p>
+                </dd>
+
+                <dt><strong
+                 class="COMMAND">man</strong>, <strong
+                 class="COMMAND">info</strong></dt>
+
+                <dd>
+                  <p>Команды доступа к справочным и информационным
+                  страницам по системным командам и установленным
+                  программам и утилитам. Как правило, страницы <span
+                   class="emphasis"><em
+                   class="EMPHASIS">info</em></span> содержат более
+                  подробную информацию, чем <span
+                   class="emphasis"><em
+                   class="EMPHASIS">man</em></span>.</p>
+                </dd>
+              </dl>
+            </div>
+          </div>
+
+          <div
+           class="SECT1">
+            <hr>
+
+            <h2
+             class="SECT1"><a
+             name="MOREADV"></a>12.2. Более сложные команды</h2>
+
+            <div
+             class="VARIABLELIST">
+              <p><strong><a
+               name="CCLISTING1"></a>Команды для более опытных
+              пользователей</strong></p>
+
+              <dl>
+                <dt><a
+                 name="FINDREF"></a><strong
+                 class="COMMAND">find</strong></dt>
+
+                <dd>
+                  <p>-exec <tt
+                   class="REPLACEABLE"><em>COMMAND</em></tt> \;</p>
+
+                  <p>Для каждого найденного файла, соответствующего
+                  заданному шаблону поиска, выполняет команду <tt
+                   class="REPLACEABLE"><em>COMMAND</em></tt>. Командная
+                  строка должна завершаться последовательностью
+                  символов <span
+                   class="TOKEN">\;</span> (здесь символ <span
+                   class="QUOTE">&quot;;&quot;</span> экранирован
+                  обратным слэшем, чтобы информировать командную
+                  оболочку о том, что символ <span
+                   class="QUOTE">&quot;;&quot;</span> должен быть
+                  передан команде <strong
+                   class="COMMAND">find</strong> как обычный символ).
+                  Если <tt
+                   class="REPLACEABLE"><em>COMMAND</em></tt> содержит
+                  <span
+                   class="TOKEN">{}</span>, то <strong
+                   class="COMMAND">find</strong> подставляет полное имя
+                  найденного файла вместо <span
+                   class="QUOTE">&quot;{}&quot;</span>.</p>
+<pre
+ class="SCREEN">
+<tt
+ class="PROMPT">bash$</tt> <tt
+ class="USERINPUT"><strong>find ~/ -name &#39;*.txt&#39;</strong></tt>
+<tt
+ class="COMPUTEROUTPUT">/home/bozo/.kde/share/apps/karm/karmdata.txt
+/home/bozo/misc/irmeyc.txt
+/home/bozo/test-scripts/1.txt</tt>
+             
+</pre>
+                  <br>
+                  <br>
+<pre
+ class="PROGRAMLISTING">
+find /home/bozo/projects -mtime 1
+#  Найти все файлы в каталоге /home/bozo/projects и вложенных подкаталогах,
+#+ которые изменялись в течение последних суток.
+#
+#  mtime = время последнего изменения файла
+#  ctime = время последнего изменения атрибутов файла (через &#39;chmod&#39; или как-то иначе)
+#  atime = время последнего обращения к файлу
+
+DIR=/home/bozo/junk_files
+find &quot;$DIR&quot; -type f -atime +5 -exec rm {} \;
+#  Удалить все файлы в каталоге &quot;/home/bozo/junk_files&quot;
+#+ к которым не было обращений в течение последних 5 дней.
+#
+#  &quot;-type filetype&quot;, где
+#  f = обычный файл
+#  d = каталог, и т.п.
+#  (Полный список ключей вы найдете в &#39;man find&#39;.)
+</pre>
+                  <br>
+                  <br>
+<pre
+ class="PROGRAMLISTING">
+find /etc -exec grep &#39;[0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*[.][0-9][0-9]*&#39; {} \;
+
+# Поиск всех IP-адресов (xxx.xxx.xxx.xxx) в файлах каталога  /etc.
+# Однако эта команда выводит не только IP-адреса, как этого избежать?
+
+# Примерно так:
+
+find /etc -type f -exec cat &#39;{}&#39; \; | tr -c &#39;.[:digit:]&#39; &#39;\n&#39; \
+ | grep &#39;^[^.][^.]*\.[^.][^.]*\.[^.][^.]*\.[^.][^.]*$&#39;
+# [:digit:] -- один из символьных классов
+# введен в стандарт POSIX 1003.2.
+
+# Спасибо S.C.
+</pre>
+                  <br>
+                  <br>
+
+                  <div
+                   class="NOTE">
+                    <table
+                     class="NOTE"
+                     width="90%"
+                     border="0">
+                      <tr>
+                        <td
+                         width="25"
+                         align="center"
+                         valign="top"><img
+                         src="misc/abs-book/images/note.gif"
+                         hspace="5"
+                         alt="Note"></td>
+
+                        <td
+                         align="left"
+                         valign="top">
+                          <p>Не следует путать опцию <tt
+                           class="OPTION">-exec</tt> команды <strong
+                           class="COMMAND">find</strong> с внутренней
+                          командой Bash -- <a
+                           href="#EXECREF">exec</a>.</p>
+                        </td>
+                      </tr>
+                    </table>
+                  </div>
+
+                  <div
+                   class="EXAMPLE">
+                    <a
+                     name="EX57"></a>
+
+                    <p><strong>Пример 12-2. Badname, удаление файлов в
+                    текущем каталоге, имена которых содержат
+                    недопустимые символы и <a
+                     href="#WHITESPACEREF">пробелы</a>.</strong></p>
+					 
+					 <a href="abs4.html">Advanced Bash-Scripting Guide - Часть 4</a>
+  </body>
+</html>
+
